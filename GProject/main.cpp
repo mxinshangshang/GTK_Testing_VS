@@ -725,25 +725,60 @@ void average()
 gpointer recv_func(gpointer arg)
 {
 	gint i = 0;
-	gchar bufferIn[40];
+	gchar bufferIn[50];
 	GError *error = NULL;
 	while (1)
 	{
-		if (g_socket_receive(sock, bufferIn, 40, NULL, &error)<0)
+		if (g_socket_receive(sock, bufferIn, 1, NULL, &error)<0)
 		{
 			perror("server recv error\n");
 			exit(1);
 		}
-		//send_to_mysql(bufferIn); /* Record in the database */
-		for (i = 0; i < 39; i++) 
+		if(bufferIn[0]!=0xaa)
 		{
-			g_print("%x ", bufferIn[i]);
+			continue;
 		}
-		//for(i=0;i<8;i++)
+		else 
+		{
+			if(g_socket_receive(sock, &bufferIn[1], 1, NULL, &error)<0)
+			{
+				perror("server recv error\n");
+				exit(1);
+			}
+			if(bufferIn[1]!=0x01)
+			{
+				continue;
+			}
+			else 
+			{
+				if (g_socket_receive(sock, &bufferIn[2], 38, NULL, &error)<0)
+				{
+					perror("server recv error\n");
+					exit(1);
+				}
+				if (bufferIn[39] != 0x55)
+				{
+					continue;
+				}
+				else
+				{
+					for (i = 0; i < 40; i++)
+					{
+						g_print("%d", bufferIn[i]);
+					}
+				}
+			}
+		}
+		////send_to_mysql(bufferIn); /* Record in the database */
+		//for (i = 0; i < 39; i++) 
 		//{
-		//datas[num][i]=bufferIn[i];
+		//	g_print("%x ", bufferIn[i]);
 		//}
-		//num++;
+		////for(i=0;i<8;i++)
+		////{
+		////datas[num][i]=bufferIn[i];
+		////}
+		////num++;
 	}
 
 	//gchar buffer1In[50];
