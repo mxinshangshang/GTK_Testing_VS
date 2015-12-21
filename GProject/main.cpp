@@ -2,7 +2,7 @@
 *  File name:      Fatigue_Tester.c
 *  Author:         Mxin Chiang
 *  Version:        1.0
-*  Date:           11.17.2015
+*  Date:           12.21.2015
 *  Description:    Design a software accepts data sent from fatigue testing machine,
 *                  waveform presentation, recording in MySQL database,
 *                  data processing and generate pdf reports.
@@ -104,7 +104,7 @@ struct EntryStruct1
 
 gchar *_(gchar *c)
 {
-	return(g_locale_to_utf8(c, -1, 0, 0, 0));
+	return(g_locale_to_utf8(c, -1,NULL, NULL, NULL));
 }
 
 /***************************************************************************************
@@ -480,17 +480,24 @@ draw_callback(GtkWidget *widget,
 		}
 		next--;
 	}
+
+	//cairo_set_line_width (cr, 5);
+	//cairo_set_source_rgb(cr, 0, 0, 0);	
+	//cairo_rectangle (cr, 0, 0, width, height);//5, 12
+	//cairo_stroke (cr);
 	return FALSE;
 }
 
 gboolean time_handler(GtkWidget *widget)
 {
-	if (surface == NULL) return FALSE;
-
+	gdouble width, height;
+	width = gtk_widget_get_allocated_width(widget);
+	height = gtk_widget_get_allocated_height(widget);
+	if (surface2 == NULL) return FALSE;
 	//if (!timer) return FALSE;
-
-	gtk_widget_queue_draw_area(widget, 0, 0, 850, 550);
+	gtk_widget_queue_draw_area(widget, 0, 0, width, height);
 	return TRUE;
+
 }
 
 /***************************************************************************************
@@ -530,54 +537,100 @@ draw_callback2(GtkWidget *widget,
 	cairo_t   *cr,
 	gpointer   data)
 {
+	gint i ;
+	gchar c[32];
 	gdouble width, height;
 	width = gtk_widget_get_allocated_width(widget);
 	height = gtk_widget_get_allocated_height(widget);
 
 	cairo_set_source_surface(cr, surface2, 0, 0);
-	//cairo_paint (cr);
 	cairo_set_source_rgb(cr, 0, 0, 0);
 
 	double xc = width / 2;
 	double yc = height / 2;
-	double radius = width / 2 - 35;
-	double angle1 = 179.9 * (M_PI / 180.0);  /* angles are specified */
-	double angle2 = 180.0 * (M_PI / 180.0);  /* in radians           */
+	double radius = width / 2 - 10;
+	double angle1 = 0 * (M_PI / 180.0);  /* angles are specified */
+	double angle2 = 360.0 * (M_PI / 180.0);  /* in radians           */
 
 	cairo_set_line_width(cr, 5.0);
-	cairo_arc_negative(cr, xc, yc, radius, angle1, angle2);
+	cairo_arc(cr, xc, yc, radius, angle1, angle2);
 	cairo_stroke(cr);
 
 	/* draw helping lines */
 	cairo_set_source_rgba(cr, 0, 0, 0.6, 0.6);
-	cairo_set_line_width(cr, 6.0);
+	cairo_set_line_width(cr, 4.0);
 
 	cairo_arc(cr, xc, yc, 10.0, 0, 2 * M_PI);
 	cairo_fill(cr);
 
-	cairo_arc(cr, xc, yc, radius, angle1, angle1);
-	cairo_line_to(cr, xc, yc);
-	cairo_arc(cr, xc, yc, radius, angle2, angle2);
-	cairo_line_to(cr, xc, yc);
+	for (i = 0; i < 5; i++)//???
+	{
+		cairo_arc(cr, xc, yc, radius, (72 * i - 90) * (M_PI / 180.0), (72 * i - 90)  * (M_PI / 180.0));
+		cairo_arc(cr, xc, yc, radius - 20, (72 * i - 90)  * (M_PI / 180.0), (72 * i - 90)  * (M_PI / 180.0));
+		cairo_stroke(cr);
+	}
+
+	cairo_set_line_width(cr, 1.0);//???
+	for (i = 0; i < 10; i++)
+	{
+		cairo_arc(cr, xc, yc, radius, (36 * i - 90) * (M_PI / 180.0), (36 * i - 90)  * (M_PI / 180.0));
+		cairo_arc(cr, xc, yc, radius - 20, (36 * i - 90)  * (M_PI / 180.0), (36 * i - 90)  * (M_PI / 180.0));
+		cairo_stroke(cr);
+	}
+
+	cairo_set_line_width(cr, 1.0);//???
+	for (i = 0; i < 50; i++)
+	{
+		cairo_arc(cr, xc, yc, radius, (7.2 * i - 90) * (M_PI / 180.0), (7.2 * i - 90)  * (M_PI / 180.0));
+		cairo_arc(cr, xc, yc, radius - 10, (7.2 * i - 90)  * (M_PI / 180.0), (7.2 * i - 90)  * (M_PI / 180.0));
+		cairo_stroke(cr);
+	}
+
+	for (i = 0; i < 10; i++)//??
+	{
+		cairo_set_font_size(cr, 15.0);
+		cairo_set_source_rgba(cr, 0, 0, 0, 1);
+		gint y = 60 * i;
+		sprintf_s(c, "%d", y);
+		cairo_arc(cr, xc - 8, yc + 8, radius - 35, (36 * i - 90)  * (M_PI / 180.0), (36 * i - 90)  * (M_PI / 180.0));
+		cairo_show_text(cr, c);
+		cairo_stroke(cr);
+	}
+
+	cairo_set_font_size(cr, 15.0);
+	cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_source_rgba(cr, 0, 0, 0, 1);
+	cairo_move_to(cr, xc-30, yc + 30);
+	//const gchar* y="试验力(kN)";
+	cairo_show_text(cr, _("试验力(kN)"));	
+	//cairo_show_text(cr, g_convert("试验力(kN)",-1,"UTF-8","GB2312",NULL,NULL,NULL));
 	cairo_stroke(cr);
+
 	cairo_set_source_rgb(cr, 1, 0, 0);
 	cairo_set_line_width(cr, 6.0);
-	cairo_arc(cr, xc, yc, radius - 10, (179 + arc_i)* (M_PI / 180.0), (180 + arc_i) * (M_PI / 180.0));
+	cairo_arc(cr, xc, yc, radius - 30, (179 + arc_i)* (M_PI / 180.0), (180 + arc_i) * (M_PI / 180.0));
 	cairo_line_to(cr, xc, yc);
 	cairo_stroke(cr);
 	arc_i = arc_i + 10;
-	if (arc_i == 180) arc_i = 0;
+	if (arc_i == 360) arc_i = 0;
+
+	cairo_set_line_width (cr, 5);
+	cairo_set_source_rgb(cr, 0.7, 0.7, 0.7);	
+	cairo_rectangle (cr, 0, 0, width, height);
+	cairo_stroke (cr);
 
 	return FALSE;
+
 }
 
 gboolean time_handler2(GtkWidget *widget)
 {
+	gdouble width, height;
+	width = gtk_widget_get_allocated_width(widget);
+	height = gtk_widget_get_allocated_height(widget);
 	if (surface2 == NULL) return FALSE;
-
 	//if (!timer) return FALSE;
-
-	gtk_widget_queue_draw_area(widget, 0, 0, 600, 200);
+	gtk_widget_queue_draw_area(widget, 0, 0, width, height);
 	return TRUE;
 }
 
@@ -622,28 +675,50 @@ draw_callback3(GtkWidget *widget,
 	gdouble width, height;
 	width = gtk_widget_get_allocated_width(widget);
 	height = gtk_widget_get_allocated_height(widget);
-	cairo_set_line_width (cr, 3);
-	cairo_set_source_rgb(cr, 0, 0.8, 0.5);	
-	cairo_rectangle (cr, 5, 12, 280, 65);
+	cairo_set_line_width (cr, 5);
+	cairo_set_source_rgb(cr, 0, 0, 0);	//black
+	cairo_rectangle (cr, 0, 0, width/4, height);//5, 12
+	cairo_fill_preserve (cr);
+	cairo_rectangle (cr, width/4, 0, width/4, height);//290,12
+	cairo_fill_preserve (cr);
+	cairo_rectangle (cr, width/2, 0, width/4, height);//575,12
+	cairo_fill_preserve (cr);
+	cairo_rectangle (cr, width/4*3, 0, width/4, height);
 	cairo_fill_preserve (cr);
 	cairo_stroke (cr);
-	cairo_set_source_rgb(cr, 0, 0.8, 0.5);
-	cairo_rectangle (cr, 290, 12, 280, 65);
-	cairo_fill_preserve (cr);
-	cairo_stroke (cr);
-	cairo_set_source_rgb(cr, 0, 0.8, 0.5);
-	cairo_rectangle (cr, 575, 12, 280, 65);
-	cairo_fill_preserve (cr);
-	cairo_stroke (cr);
-	cairo_set_source_rgb(cr, 1, 1, 1);
+	
+	cairo_set_source_rgb(cr, 0.2, 1, 1);
 	cairo_select_font_face (cr, "Sans", CAIRO_FONT_SLANT_NORMAL,CAIRO_FONT_WEIGHT_BOLD);
 	cairo_set_font_size (cr, 50.0);
-	cairo_move_to (cr, 155.0, 70.0);
+	cairo_move_to (cr, width/4-150, height-30);
 	cairo_show_text (cr, "99.99");
-	cairo_move_to (cr, 440.0, 70.0);
+	cairo_move_to (cr, width/4*2-150, height-30);
 	cairo_show_text (cr, "99.99");
-	cairo_move_to (cr, 722.0, 70.0);
+	cairo_move_to (cr, width/4*3-150, height-30);
 	cairo_show_text (cr, "99.99");
+	cairo_move_to (cr, width-150, height-30);
+	cairo_show_text (cr, "99.99");
+	cairo_stroke (cr);
+
+	cairo_set_source_rgb(cr, 1, 1, 1);//white
+	cairo_select_font_face (cr, "Sans", CAIRO_FONT_SLANT_NORMAL,CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size (cr, 20.0);
+	cairo_move_to (cr, 0+5, height-75);
+	cairo_show_text (cr, _("试验力(kN)"));
+	cairo_move_to (cr, width/4+5, height-75);
+	cairo_show_text (cr, _("变形(mm)"));
+	cairo_move_to (cr, width/2+5, height-75);
+	cairo_show_text (cr, _("时间(s)"));
+	cairo_move_to (cr, width/4*3+5, height-75);
+	cairo_show_text (cr, _("位移(mm)"));	
+	cairo_stroke (cr);
+
+	cairo_set_line_width (cr, 5);
+	cairo_set_source_rgb(cr, 0.7, 0.7, 0.7);	
+	cairo_rectangle (cr, 0, 0, width/4, height);//5, 12
+	cairo_rectangle (cr, width/4, 0, width/4, height);//290,12
+	cairo_rectangle (cr, width/2, 0, width/4, height);//575,12
+	cairo_rectangle (cr, width/4*3, 0, width/4, height);
 	cairo_stroke (cr);
 
 	return FALSE;
@@ -651,11 +726,11 @@ draw_callback3(GtkWidget *widget,
 
 gboolean time_handler3(GtkWidget *widget)
 {
-	if (surface2 == NULL) return FALSE;
-
-	//if (!timer) return FALSE;
-
-	gtk_widget_queue_draw_area(widget, 0, 0, 600, 65);
+	gdouble width, height;
+	width = gtk_widget_get_allocated_width(widget);
+	height = gtk_widget_get_allocated_height(widget);
+	if (surface3 == NULL) return FALSE;
+	gtk_widget_queue_draw_area(widget, 0, 0, width, height);
 	return TRUE;
 }
 
@@ -1245,7 +1320,7 @@ int main(int argc, char *argv[])
 {
 	gint i = 0;
 	GtkWidget *window;
-	GtkWidget *label1, *label2, *label3, *label4, *label5, *label6, *label7, *label8, *label9;
+	GtkWidget *label1, *label2, *label3, *label4, *label5, *label6, *label7, *label8, *label9, *label10, *label11, *label12;
 	GtkWidget *conn_button, *close_button, *send_button, *pre_report_button;
 	GtkWidget *rece_view;
 	GtkWidget *da;
@@ -1273,7 +1348,7 @@ int main(int argc, char *argv[])
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(window), "Window For Fatigue-Test");
 	gtk_container_set_border_width(GTK_CONTAINER(window), 0);
-	gtk_widget_set_size_request(window, 850, 650);
+	gtk_widget_set_size_request(window, 1200, 650);
 
 	grid = gtk_grid_new();
 
@@ -1286,6 +1361,9 @@ int main(int argc, char *argv[])
 	label7 = gtk_label_new("Duty Cycle:");
 	label8 = gtk_label_new("PWM-DIR:");
 	label9 = gtk_label_new("Messages:");
+	label10 = gtk_label_new(_("试验力-时间曲线"));
+	label11 = gtk_label_new(_("试验力(kN)"));
+	label12 = gtk_label_new(_("时间(s)"));
 	entries.IP = (GtkEntry*)gtk_entry_new();
 	entries.Port = (GtkEntry*)gtk_entry_new();
 	entries1.DA1 = (GtkEntry*)gtk_entry_new();
@@ -1340,7 +1418,7 @@ int main(int argc, char *argv[])
 	/* Create a new button that send messages */
 	send_button = gtk_button_new_with_label("Send");
 	g_signal_connect(G_OBJECT(send_button), "clicked", G_CALLBACK(on_send_button_clicked), (gpointer)&entries1);
-	conn_button = gtk_button_new_with_label("Connect");
+	conn_button = gtk_button_new_with_label(_("开始"));
 	//gtk_button_set_relief(GTK_BUTTON(conn_button), GTK_RELIEF_NONE);
 	g_signal_connect(G_OBJECT(conn_button), "clicked", G_CALLBACK(on_button1_clicked), (gpointer)&entries);
 
@@ -1351,7 +1429,7 @@ int main(int argc, char *argv[])
 	g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(destroy), NULL);
 
 	/* Create a new button that prepare for the report */
-	pre_report_button = gtk_button_new_with_label("Prepare report");
+	pre_report_button = gtk_button_new_with_label(_("停止"));
 	g_signal_connect(G_OBJECT(pre_report_button), "clicked", G_CALLBACK(on_pre_report_button_clicked), (gpointer)surface);
 
 	/* Create a menuitem to expand */
@@ -1373,11 +1451,11 @@ int main(int argc, char *argv[])
 	menuitem = gtk_image_menu_item_new_from_stock(GTK_STOCK_QUIT, accel_group);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 	g_signal_connect(G_OBJECT(menuitem), "activate", G_CALLBACK(on_menu_activate), (gpointer)(_(" 退出")));
-	rootmenu = gtk_menu_item_new_with_label(_(" 文件 "));
+	rootmenu = gtk_menu_item_new_with_label(_(" 设置 "));
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(rootmenu), menu);
 	menubar = gtk_menu_bar_new();
 	gtk_menu_shell_append(GTK_MENU_SHELL(menubar), rootmenu);
-	rootmenu = gtk_menu_item_new_with_label(_(" 编辑 "));
+	rootmenu = gtk_menu_item_new_with_label(_(" 调整 "));
 	editmenu = gtk_menu_new();
 	menuitem = gtk_image_menu_item_new_from_stock(GTK_STOCK_CUT, accel_group);
 	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu), menuitem);
@@ -1407,35 +1485,47 @@ int main(int argc, char *argv[])
 	/* Use grid to layout gtkWidgets */
 	gtk_window_add_accel_group(GTK_WINDOW(window), accel_group);
 	/* gtk_grid_attach (GtkGrid  *grid,GtkWidget *child,gint left,gint top,gint width,gint height); */
-	gtk_grid_attach(GTK_GRID(grid), menubar, 0, 0, 825, 30);
-	gtk_grid_attach(GTK_GRID(grid), label1, 0, 50, 50, 30);
-	gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(entries.IP), 50, 50, 100, 30);
-	gtk_grid_attach(GTK_GRID(grid), label2, 150, 50, 50, 40);
-	gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(entries.Port), 200, 50, 50, 30);
-	//gtk_grid_attach(GTK_GRID(grid), conn_button, 0, 100, 80, 30);
-	//gtk_grid_attach(GTK_GRID(grid), close_button, 100, 100, 80, 30);
-	gtk_grid_attach(GTK_GRID(grid), conn_button, 250, 50, 80, 30);
-	gtk_grid_attach(GTK_GRID(grid), close_button, 330, 50, 80, 30);
-	gtk_grid_attach(GTK_GRID(grid), num, 5, 150, 687, 65);
-	gtk_grid_attach(GTK_GRID(grid), da, 5, 220, 687, 450);
-	gtk_grid_attach(GTK_GRID(grid), label9, 700, 150, 50, 50);
-	gtk_grid_attach(GTK_GRID(grid), scrolled1, 765, 150, 50, 50);
-	gtk_grid_attach(GTK_GRID(grid), label3, 690, 200, 80, 50);
-	gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(entries1.DA1), 765, 200, 50, 50);
-	gtk_grid_attach(GTK_GRID(grid), label4, 690, 230, 80, 50);
-	gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(entries1.DA2), 765, 230, 50, 50);
-	gtk_grid_attach(GTK_GRID(grid), label5, 690, 260, 80, 50);
-	gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(entries1.D0), 765, 260, 50, 50);
-	gtk_grid_attach(GTK_GRID(grid), label6, 690, 290, 80, 50);
-	gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(entries1.PWM), 765, 290, 50, 50);
-	gtk_grid_attach(GTK_GRID(grid), label7, 690, 320, 80, 50);
-	gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(entries1.PWM_Duty), 765, 320, 50, 50);
-	gtk_grid_attach(GTK_GRID(grid), label8, 690, 350, 80, 50);
-	gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(entries1.PWM_DIR), 765, 350, 50, 50);
 
-	gtk_grid_attach(GTK_GRID(grid), send_button, 765, 400, 50, 20);
-	gtk_grid_attach(GTK_GRID(grid), pre_report_button, 765, 430, 50, 20);
-	gtk_grid_attach(GTK_GRID(grid), sector, 700, 470, 115, 175);
+	gtk_grid_attach(GTK_GRID(grid), menubar, 0, 0, 1200, 30);
+	
+	gtk_grid_attach(GTK_GRID(grid), num, 0, 30, 1200, 100);
+	gtk_grid_attach(GTK_GRID(grid), label10, 400, 120, 50, 50);
+	gtk_grid_attach(GTK_GRID(grid), da, 30, 160, 900-40, 500);
+	gtk_grid_attach(GTK_GRID(grid), label12, 400, 650, 50, 50);
+	gtk_grid_attach(GTK_GRID(grid), sector, 900, 200, 300, 300);
+	gtk_grid_attach(GTK_GRID(grid), conn_button, 960, 540, 70, 70);
+	gtk_grid_attach(GTK_GRID(grid), pre_report_button, 1070, 540, 70, 70);
+
+
+	//gtk_grid_attach(GTK_GRID(grid), label1, 0, 50, 50, 30);
+	//gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(entries.IP), 50, 50, 100, 30);
+	//gtk_grid_attach(GTK_GRID(grid), label2, 150, 50, 50, 40);
+	//gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(entries.Port), 200, 50, 50, 30);
+	////gtk_grid_attach(GTK_GRID(grid), conn_button, 0, 100, 80, 30);
+	////gtk_grid_attach(GTK_GRID(grid), close_button, 100, 100, 80, 30);
+	//gtk_grid_attach(GTK_GRID(grid), conn_button, 250, 50, 80, 30);
+	//gtk_grid_attach(GTK_GRID(grid), close_button, 330, 50, 80, 30);
+
+	//gtk_grid_attach(GTK_GRID(grid), num, 5, 150, 687, 65);
+	//gtk_grid_attach(GTK_GRID(grid), da, 5, 220, 687, 450);
+
+	//gtk_grid_attach(GTK_GRID(grid), label9, 700, 150, 50, 50);
+	//gtk_grid_attach(GTK_GRID(grid), scrolled1, 765, 150, 50, 50);
+	//gtk_grid_attach(GTK_GRID(grid), label3, 690, 200, 80, 50);
+	//gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(entries1.DA1), 765, 200, 50, 50);
+	//gtk_grid_attach(GTK_GRID(grid), label4, 690, 230, 80, 50);
+	//gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(entries1.DA2), 765, 230, 50, 50);
+	//gtk_grid_attach(GTK_GRID(grid), label5, 690, 260, 80, 50);
+	//gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(entries1.D0), 765, 260, 50, 50);
+	//gtk_grid_attach(GTK_GRID(grid), label6, 690, 290, 80, 50);
+	//gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(entries1.PWM), 765, 290, 50, 50);
+	//gtk_grid_attach(GTK_GRID(grid), label7, 690, 320, 80, 50);
+	//gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(entries1.PWM_Duty), 765, 320, 50, 50);
+	//gtk_grid_attach(GTK_GRID(grid), label8, 690, 350, 80, 50);
+	//gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(entries1.PWM_DIR), 765, 350, 50, 50);
+	//gtk_grid_attach(GTK_GRID(grid), send_button, 765, 400, 50, 20);
+	//gtk_grid_attach(GTK_GRID(grid), pre_report_button, 765, 430, 50, 20);
+	//gtk_grid_attach(GTK_GRID(grid), sector, 700, 470, 115, 175);
 
 	gtk_grid_set_row_spacing(GTK_GRID(grid), 1);
 	gtk_grid_set_column_spacing(GTK_GRID(grid), 1);
