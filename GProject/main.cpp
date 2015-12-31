@@ -17,6 +17,7 @@
 #include <time.h>
 #include <cairo-pdf.h>
 #include <math.h>
+#include "socket_msg.h"
 
 #define _WIN32_ 1    /* Compile for WIN32 */
 //#define _LINUX_ 1    /* Compile for Linux */
@@ -51,8 +52,8 @@
 
 //#define CAIRO_HAS_PDF_SURFACE 1
 
-int check_tbl(MYSQL* mysql, gchar *name);
-int check_db(MYSQL *mysql, gchar *db_name);
+gint check_tbl(MYSQL* mysql, gchar *name);
+gint check_db(MYSQL *mysql, gchar *db_name);
 
 gint **datas;
 gint num = 0;
@@ -101,8 +102,8 @@ struct EntryStruct1
 	GtkEntry *PWM_DIR;
 };
 
-gchar *se_ip;
-gchar *se_port;
+gchar *se_ip=g_new(gchar,1);
+gchar *se_port=g_new(gchar,1);
 struct EntryStruct entries;
 
 gdouble time_second = 0.0;
@@ -111,6 +112,305 @@ gboolean start=false;
 gchar *_(gchar *c)
 {
 	return(g_locale_to_utf8(c, -1,NULL, NULL, NULL));
+}
+
+/***************************************************************************************
+*    Function:
+*    Description:  socket msg parse
+***************************************************************************************/
+//initialize the socket_msg structure
+void socket_msg_init(socket_msg *msg)
+{
+	msg->len = 0;
+	msg->type = 0;
+}
+
+//initialize the socket_cache structure
+void socket_cache_init(socket_cache *cache, tp_socket_msg_handle handle)
+{
+	cache->front = 0;
+	cache->rear = 0;
+	cache->current = 0;
+	cache->len = 0;
+	cache->tag = 0;
+	cache->strategy = SEARCH_HEAD;
+	cache->handle = handle;
+	cache->args = NULL;
+
+	socket_msg_init(&cache->recv_msg);
+}
+
+//copy buffer to cache from buffer
+gint socket_msg_cpy_in(socket_cache *cache, guchar *buf, gint len)
+{
+	gint left_len;
+	gint copy_len;
+	gint count;
+	guchar *src = buf;
+
+	if (cache->tag == 1 && cache->front == cache->rear) {
+		g_print("socket_msg_cpy_in:socket cache is full!\n");
+		return 	FALSE;
+	}
+
+	left_len = SOCKET_MSG_CACHE_SIZE - cache->len;
+	copy_len = len > left_len ? left_len : len;
+	count = copy_len;
+
+	while (count--)
+	{
+		*(cache->buf + cache->rear) = *src;
+		src++;
+		cache->rear = (cache->rear + 1) % SOCKET_MSG_CACHE_SIZE;
+		cache->len++;
+		cache->tag = 1;
+
+	}
+	return copy_len;
+}
+
+//copy data to buffer from cache
+gint socket_msg_cpy_out(socket_cache *cache, guchar *buf, gint start_index, gint len)
+{
+	guchar* dest;
+	gint src;
+	gint count;
+	if (cache == NULL || cache->buf == NULL || buf == NULL || len == 0) {
+		return FALSE;
+	}
+
+	if (cache->front == cache->rear && cache->tag == 0) {
+		g_print("socket_msg_cpy_out:socket cache is empty!\n");
+		return FALSE;
+	}
+
+	if (cache->rear > cache->front) {
+		if (start_index < cache->front || start_index > cache->rear) {
+			g_print("socket_msg_cpy_out:invalid start index!\n");
+			return FALSE;
+		}
+	}
+	else if (start_index > cache->rear && start_index < cache->front) {
+		g_print("socket_msg_cpy_out:invalid start index!\n");
+		return FALSE;
+	}
+
+	src = start_index;
+	dest = buf;
+	count = len;
+	while (count--)
+	{
+		*dest = *(cache->buf + src);
+		dest++;
+		src = (src + 1) % SOCKET_MSG_CACHE_SIZE;
+
+	}
+	return len;
+}
+
+//parsed the packaged data, and invoke callback function
+void socket_msg_parse(gint fd, socket_cache *cache)
+{
+	gint current_len;
+	gint p, q, m, n;
+	gint i;
+	gint find;
+
+	if (cache->front == cache->rear && cache->tag == 0) {
+		//D("socket cache is empty!\n");
+		return;
+	}
+
+	//calculate the current length of cache
+	if (cache->current >= cache->front) {
+		current_len = cache->len - (cache->current - cache->front);
+	}
+	else {
+		current_len = cache->rear - cache->current;
+	}
+
+	switch (cache->strategy) {
+	case SEARCH_HEAD://to find a Head format in cache
+		if (current_len < SOCKET_MSG_HEAD_SIZE) {
+			return;
+		}
+		find = FALSE;
+		for (i = 0; i < current_len - 1; i++) {
+			p = cache->current;
+			q = (cache->current + 1) % SOCKET_MSG_CACHE_SIZE;
+			m = (cache->current + 2) % SOCKET_MSG_CACHE_SIZE;
+			n = (cache->current + 3) % SOCKET_MSG_CACHE_SIZE;
+			if ((cache->buf[p] == (SOCKET_MSG_HEAD >> 24)) &&
+				(cache->buf[q] == (SOCKET_MSG_HEAD >> 16)) &&
+				(cache->buf[m] == (SOCKET_MSG_HEAD >> 8)) &&
+				(cache->buf[n] == (SOCKET_MSG_HEAD & 0xff))) 
+			{
+
+				find = TRUE;
+				break; //exit for loop
+			}
+			else {
+				//current pointer move to next
+				cache->current = q;
+				//delete one item
+				cache->front = cache->current;
+				cache->len--;
+				cache->tag = 0;
+			}
+		}
+
+		if (find == TRUE) {
+			//move 2 items towards next
+			cache->current = (cache->current + 2) % SOCKET_MSG_CACHE_SIZE;
+			//we found the head format, go on to find Type byte
+			cache->strategy = SEARCH_TYPE;
+		}
+		else {
+			//if there is no head format ,delete previouse items
+			g_print("socket message without head: %x!\n", SOCKET_MSG_HEAD);
+			//go on to find Head format
+			cache->strategy = SEARCH_HEAD;
+		}
+		break;
+
+	case SEARCH_FIRST://to find the type byte in cache
+		if (current_len < SOCKET_MSG_FIRST_SIZE) {
+			return;
+		}
+		//get the value of type
+		//cache->type = cache->buf[cache->current];
+		cache->recv_msg.type = cache->buf[cache->current];
+		cache->current = (cache->current + 1) % SOCKET_MSG_CACHE_SIZE;
+		//we found Type byte, go on to find Datalen format
+		cache->strategy = SEARCH_TYPE;
+		break;
+
+	case SEARCH_TYPE://to find the type byte in cache
+		if (current_len < SOCKET_MSG_TYPE_SIZE) {
+			return;
+		}
+		//get the value of type
+		//cache->type = cache->buf[cache->current];
+		cache->recv_msg.type = cache->buf[cache->current];
+		cache->current = (cache->current + 1) % SOCKET_MSG_CACHE_SIZE;
+		//we found Type byte, go on to find Datalen format
+		cache->strategy = SEARCH_SECOND;
+		break;
+
+	case SEARCH_SECOND://to find the type byte in cache
+		if (current_len < SOCKET_MSG_SECOND_SIZE) {
+			return;
+		}
+		//get the value of type
+		//cache->type = cache->buf[cache->current];
+		cache->recv_msg.type = cache->buf[cache->current];
+		cache->current = (cache->current + 1) % SOCKET_MSG_CACHE_SIZE;
+		//we found Type byte, go on to find Datalen format
+		cache->strategy = SEARCH_END;
+		break;
+
+	case SEARCH_END:
+		if (current_len < (cache->recv_msg.len + SOCKET_MSG_END_SIZE)) {
+			return;
+		}
+		//because we have known the data bytes' len, so we move the very  
+		//distance of datalen to see if there is End format. 
+		p = (cache->current + cache->recv_msg.len) % SOCKET_MSG_CACHE_SIZE;
+		q = (cache->current + cache->recv_msg.len + 1) % SOCKET_MSG_CACHE_SIZE;
+		m = (cache->current + cache->recv_msg.len + 2) % SOCKET_MSG_CACHE_SIZE;
+		n = (cache->current + cache->recv_msg.len + 3) % SOCKET_MSG_CACHE_SIZE;
+		if ((cache->buf[p] == (SOCKET_MSG_END >> 24)) &&
+			(cache->buf[q] == (SOCKET_MSG_END >> 16)) &&
+			(cache->buf[m] == (SOCKET_MSG_END >> 8)) &&
+			(cache->buf[n] == (SOCKET_MSG_END & 0xff))) {
+			socket_msg_cpy_out(cache, cache->recv_msg.data, cache->current, cache->recv_msg.len);
+			if (cache->handle != NULL) {
+				//cache->handle(fd, cache->buf + cache->data_index, cache->data_len);
+				cache->handle(fd, &cache->recv_msg, cache->args);
+			}
+			//delete all previous items
+			cache->current = (q + 1) % SOCKET_MSG_CACHE_SIZE;
+			cache->front = cache->current;
+			cache->len -= (cache->recv_msg.len + SOCKET_MSG_FORMAT_SIZE);
+			cache->tag = 0;
+
+		}
+		else {
+			g_print("socket message without end: %x!\n", SOCKET_MSG_END);
+			//delete the frist item 'a5'
+			//move back 3 items
+			cache->current = cache->current >= 3 ? (cache->current - 3) : (SOCKET_MSG_CACHE_SIZE - 3 + cache->current);
+			cache->front = cache->current;
+			//length sub 3
+			cache->len -= 3;
+			cache->tag = 0;
+
+		}
+		//go on to find Head format
+		cache->strategy = SEARCH_HEAD;
+		break;
+
+	default:
+		break;
+	}
+	//parse new socket message
+	socket_msg_parse(fd, cache);
+}
+
+//copy the unparsed data to cache, and parsed them
+gint socket_msg_pre_parse(
+	gint fd,
+	socket_cache *cache,
+	guchar *buf,
+	gint len,
+	void *args)
+{
+	gint n = 0;
+	guchar *p = buf;
+	//when reading buffer's length is greater than cache's left length,
+	//we should copy many times.
+	cache->args = args;
+	while (1) {
+		n = socket_msg_cpy_in(cache, p, len);
+		if (n == 0) {
+			return FALSE;//cache is full	
+		}
+		//parse and handle socket message from cache
+		socket_msg_parse(fd, cache);
+
+		if (n == len) {
+			return TRUE; //copy completed
+		}
+		//move the pointer
+		p = p + n;
+		len = len - n;
+	}
+
+	return TRUE;
+
+}
+
+//before you send data,you should package them
+void socket_msg_package(socket_msg *msg, guchar type, guchar *buf, gint len)
+{
+	if (msg == NULL || buf == NULL || len <= 0) {
+		return;
+	}
+	//head
+	msg->data[0] = SOCKET_MSG_HEAD >> 8;
+	msg->data[1] = SOCKET_MSG_HEAD & 0xff;
+	//type
+	msg->data[2] = type;
+	//data len
+	msg->data[3] = len;
+	//data
+	memcpy(msg->data + 4, buf, len);
+	//end
+	msg->data[len + 4] = SOCKET_MSG_END >> 8;
+	msg->data[len + 5] = SOCKET_MSG_END & 0xff;
+
+	//message len
+	msg->len = len + SOCKET_MSG_FORMAT_SIZE;
 }
 
 /***************************************************************************************
@@ -171,7 +471,7 @@ gint *Filter(gchar recv_data[])
 *    Description:  Database Operations
 ***************************************************************************************/
 //
-//int init_db()
+//gint init_db()
 //{
 //	gint err = 0;
 //	MYSQL mysql;
@@ -212,7 +512,7 @@ gint *Filter(gchar recv_data[])
 //	return 0;
 //}
 //
-//int check_db(MYSQL *mysql, gchar *db_name)
+//gint check_db(MYSQL *mysql, gchar *db_name)
 //{
 //	MYSQL_ROW row = NULL;
 //	MYSQL_RES *res = NULL;
@@ -245,7 +545,7 @@ gint *Filter(gchar recv_data[])
 //	return 0;
 //}
 //
-//int check_tbl(MYSQL* mysql, gchar *name)
+//gint check_tbl(MYSQL* mysql, gchar *name)
 //{
 //	if (name == NULL)
 //		return 0;
@@ -868,106 +1168,32 @@ void on_ip_menu_activate(GtkMenuItem* item, gpointer data)
 gpointer recv_func(gpointer arg)
 {
 	gint i = 0;
-	gchar bufferIn[45];
+	gchar *bufferIn=NULL;
+	gint n = 0;
+	socket_cache *cache=NULL;
+	gint len = 45;
 	GError *error = NULL;
 	while (1)
 	{
-		if (g_socket_receive(sock, bufferIn, 1, NULL, &error)<0)
+		if (g_socket_receive(sock, bufferIn, 512, NULL, &error)<0)
 		{
 			perror("server recv error\n");
 			exit(1);
 		}
-		if(bufferIn[0]!=0xaa)
-		{
-			continue;
+		n = socket_msg_cpy_in(cache, (guchar *)bufferIn, len);
+		if (n == 0) {
+			return FALSE;//cache is full	
 		}
-		else 
-		{
-			if(g_socket_receive(sock, &bufferIn[1], 1, NULL, &error)<0)
-			{
-				perror("server recv error\n");
-				exit(1);
-			}
-			if(bufferIn[1]!=0x01)
-			{
-				continue;
-			}
-			else 
-			{
-				if (g_socket_receive(sock, &bufferIn[2], 38, NULL, &error)<0)
-				{
-					perror("server recv error\n");
-					exit(1);
-				}
-				if (bufferIn[39] != 0x55)
-				{
-					continue;
-				}
-				else
-				{
-					for (i = 0; i < 40; i++)
-					{
-						g_print("%d", bufferIn[i]);
-					}
-				}
-			}
-		}
-		////send_to_mysql(bufferIn); /* Record in the database */
-		//for (i = 0; i < 39; i++) 
-		//{
-		//	g_print("%x ", bufferIn[i]);
+		//parse and handle socket message from cache
+		socket_msg_parse(1, cache);
+
+		//if (n == len) {
+		//	return TRUE; //copy completed
 		//}
-		////for(i=0;i<8;i++)
-		////{
-		////datas[num][i]=bufferIn[i];
-		////}
-		////num++;
+		//move the pointer
+		bufferIn = bufferIn + n;
+		len = len - n;
 	}
-
-	//gchar buffer1In[50];
-	//gchar buffer2In[50];
-	//GInputVector vector1;
-	//GInputVector vector2;
-	//GError *error = NULL;
-	//vector1.buffer = buffer1In;
-	//vector1.size = 50;
-	//vector2.buffer = buffer2In;
-	//vector2.size = 50;
-	//while (1)
-	//{
-	//	if (buffer1_ready == true) 
-	//	{
-	//		if (g_socket_receive(sock, (gchar *)vector1.buffer, vector1.size, NULL, &error)<0)
-	//		{
-	//			perror("server recv error\n");
-	//			exit(1);
-	//		}
-
-	//		buffer1_ready = false;
-	//	}
-	//	else if (buffer2_ready == true)
-	//	{
-	//		if (g_socket_receive(sock, (gchar *)vector2.buffer, vector2.size, NULL, &error)<0)
-	//		{
-	//			perror("server recv error\n");
-	//			exit(1);
-	//		}
-	//		buffer2_ready = false;
-	//	}
-	//	if (g_socket_receive(sock, (gchar *)vector1.buffer, vector1.size, NULL, &error)<0)
-	//	{
-	//		perror("server recv error\n");
-	//		exit(1);
-	//	}
-	//	//send_to_mysql(bufferIn); /* Record in the database */
-	//	if (buffer1In) {}
-	//	//g_print("Messages:  %x\n",bufferIn[0],bufferIn[1],bufferIn[2],bufferIn[3]);
-	//	//for (i = 0; i<8; i++)
-	//	//{
-	//	//	datas[num][i] = bufferIn[i];
-	//	//}
-	//	//num++;
-	//}
 }
 
 /* Send function */
@@ -1380,7 +1606,7 @@ void on_cls_button_clicked()
 /* Stop the GTK+ main loop function. */
 static void destroy(GtkWidget *window, gpointer data)
 {
-	int i;
+	gint i;
 	for (i = 0; i<360000; i++)
 	{
 		g_free(datas[i]);
@@ -1390,7 +1616,7 @@ static void destroy(GtkWidget *window, gpointer data)
 	gtk_main_quit();
 }
 
-int main(int argc, char *argv[])
+gint main(gint argc, char *argv[])
 {
 	gint i = 0;
 	GtkWidget *window;
@@ -1400,8 +1626,9 @@ int main(int argc, char *argv[])
 	GtkWidget *da;
 	GtkWidget *sector;
 	GtkWidget *menubar;
-	GtkWidget *menu;
-	GtkWidget *editmenu, *helpmenu, *rootmenu, *menuitem, *toolmenu, *winmenu, *ipmenu, *exitmenu;
+	GtkWidget *menu1, *menu2, *menu3, *menu4, *menu5, *menu6, *menu7;
+	GtkWidget *setmenu, *adjustmenu, *toolmenu, *winmenu, *helpmenu, *ipmenu, *exitmenu;
+	GtkWidget *s_force_sensor, *s_extensometer, *sys_para, *analy_para, *force_verfic, *extensometer_verfic, *dis_verific, *compress_db, *i_o_db, *lock, *Float, *auto_arrange, *array_win, *move_up_left, *about, *reg;
 	GtkAccelGroup *accel_group;
 
 	GtkWidget *grid;
@@ -1420,7 +1647,7 @@ int main(int argc, char *argv[])
 	}
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_title(GTK_WINDOW(window), "Window For Fatigue-Test");
+	gtk_window_set_title(GTK_WINDOW(window), "Window For Fatigue-Test (Win32)");
 	gtk_container_set_border_width(GTK_CONTAINER(window), 0);
 	gtk_widget_set_size_request(window, 1200, 650);
 
@@ -1511,95 +1738,75 @@ int main(int argc, char *argv[])
 
 	/* Create a menuitem to expand */
 	menubar = gtk_menu_bar_new();
-	
-	rootmenu = gtk_menu_item_new_with_label(_(" 设置 "));
-	menu = gtk_menu_new();
-	menuitem = gtk_image_menu_item_new_from_stock(GTK_STOCK_NEW, accel_group);
-	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
-	g_signal_connect(G_OBJECT(menuitem), "activate", G_CALLBACK(on_menu_activate), (gpointer)(_(" 新建")));
-	menuitem = gtk_image_menu_item_new_from_stock(GTK_STOCK_OPEN, accel_group);
-	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
-	g_signal_connect(G_OBJECT(menuitem), "activate", G_CALLBACK(on_menu_activate), (gpointer)(_(" 打开")));
-	menuitem = gtk_image_menu_item_new_from_stock(GTK_STOCK_SAVE, accel_group);
-	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
-	g_signal_connect(G_OBJECT(menuitem), "activate", G_CALLBACK(on_menu_activate), (gpointer)(_(" 保存")));
-	menuitem = gtk_image_menu_item_new_from_stock(GTK_STOCK_SAVE_AS, accel_group);
-	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
-	g_signal_connect(G_OBJECT(menuitem), "activate", G_CALLBACK(on_menu_activate), (gpointer)(_(" 另存为")));
-	menuitem = gtk_separator_menu_item_new();
-	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);	
-	menuitem = gtk_image_menu_item_new_from_stock(GTK_STOCK_QUIT, accel_group);
-	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
-	g_signal_connect(G_OBJECT(menuitem), "activate", G_CALLBACK(on_menu_activate), (gpointer)(_(" 退出")));
-	
-	//rootmenu = gtk_menu_item_new_with_label(_(" 设置 "));
-	gtk_menu_item_set_submenu(GTK_MENU_ITEM(rootmenu), menu);
-	//menubar = gtk_menu_bar_new();
-	gtk_menu_shell_append(GTK_MENU_SHELL(menubar), rootmenu);
-	
-	rootmenu = gtk_menu_item_new_with_label(_(" 调整 "));	
-	editmenu = gtk_menu_new();	
-	menuitem = gtk_image_menu_item_new_from_stock(GTK_STOCK_CUT, accel_group);
-	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu), menuitem);
-	g_signal_connect(G_OBJECT(menuitem), "activate", G_CALLBACK(on_menu_activate), (gpointer)(_(" 剪切 ")));
-	menuitem = gtk_image_menu_item_new_from_stock(GTK_STOCK_COPY, accel_group);
-	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu), menuitem);
-	g_signal_connect(G_OBJECT(menuitem), "activate", G_CALLBACK(on_menu_activate), (gpointer)(_("复制 ")));
-	menuitem = gtk_image_menu_item_new_from_stock(GTK_STOCK_PASTE, accel_group);
-	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu), menuitem);
-	g_signal_connect(G_OBJECT(menuitem), "activate", G_CALLBACK(on_menu_activate), (gpointer)(_(" 粘贴 ")));
-	menuitem = gtk_image_menu_item_new_from_stock(GTK_STOCK_FIND, accel_group);
-	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu), menuitem);
-	g_signal_connect(G_OBJECT(menuitem), "activate", G_CALLBACK(on_menu_activate), (gpointer)(_(" 查找 ")));
-	gtk_menu_item_set_submenu(GTK_MENU_ITEM(rootmenu), editmenu);	
-	gtk_menu_shell_append(GTK_MENU_SHELL(menubar), rootmenu);
+	menu1 = gtk_menu_new();
+	menu2 = gtk_menu_new();
+	menu3 = gtk_menu_new();
+	menu4 = gtk_menu_new();
+	menu5 = gtk_menu_new();
+	menu6 = gtk_menu_new();
+	menu7 = gtk_menu_new();
 
-	rootmenu = gtk_menu_item_new_with_label(_(" 工具 "));
-	toolmenu = gtk_menu_new();
-	menuitem = gtk_menu_item_new_with_label(_(" 工具 "));
-	gtk_menu_shell_append(GTK_MENU_SHELL(toolmenu), menuitem);
-	g_signal_connect(G_OBJECT(menuitem), "activate", G_CALLBACK(on_menu_activate), (gpointer)(_(" 工具 ")));
-	gtk_menu_item_set_submenu(GTK_MENU_ITEM(rootmenu), toolmenu);
-	gtk_menu_shell_append(GTK_MENU_SHELL(menubar), rootmenu);
+	setmenu = gtk_menu_item_new_with_label(_(" 设置 "));
+	adjustmenu = gtk_menu_item_new_with_label(_(" 调整 "));
+	toolmenu = gtk_menu_item_new_with_label(_(" 工具 "));
+	winmenu = gtk_menu_item_new_with_label(_(" 窗口 "));
+	helpmenu = gtk_menu_item_new_with_label(_(" 帮助 "));
+	ipmenu = gtk_menu_item_new_with_label(_(" IP "));
+	exitmenu = gtk_menu_item_new_with_label(_(" 退出 "));
 
-	rootmenu = gtk_menu_item_new_with_label(_(" 窗口 "));
-	winmenu = gtk_menu_new();
-	menuitem = gtk_menu_item_new_with_label(_(" 窗口 "));
-	gtk_menu_shell_append(GTK_MENU_SHELL(winmenu), menuitem);
-	g_signal_connect(G_OBJECT(menuitem), "activate", G_CALLBACK(on_menu_activate), (gpointer)(_(" 窗口 ")));
-	gtk_menu_item_set_submenu(GTK_MENU_ITEM(rootmenu), winmenu);
-	gtk_menu_shell_append(GTK_MENU_SHELL(menubar), rootmenu);
-	
-	rootmenu = gtk_menu_item_new_with_label(_(" 帮助 "));	
-	helpmenu = gtk_menu_new();
-	menuitem = gtk_image_menu_item_new_from_stock(GTK_STOCK_HELP, accel_group);
-	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu), menuitem);
-	g_signal_connect(G_OBJECT(menuitem), "activate", G_CALLBACK(on_menu_activate), (gpointer)(_(" 帮助 ")));
-	menuitem = gtk_menu_item_new_with_label(_(" 关于..."));
-	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu), menuitem);
-	g_signal_connect(G_OBJECT(menuitem), "activate", G_CALLBACK(on_menu_activate), (gpointer)(_(" 关于 ")));
-	gtk_menu_item_set_submenu(GTK_MENU_ITEM(rootmenu), helpmenu);
-	gtk_menu_shell_append(GTK_MENU_SHELL(menubar), rootmenu);
+	s_force_sensor= gtk_menu_item_new_with_label(_(" 选择力传感器 "));
+	s_extensometer= gtk_menu_item_new_with_label(_(" 选择引伸计 "));
+	sys_para= gtk_menu_item_new_with_label(_(" 系统参数 "));
+	analy_para= gtk_menu_item_new_with_label(_(" 分析参数 "));
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu1),s_force_sensor);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu1),s_extensometer);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu1),sys_para);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu1),analy_para);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(setmenu),menu1);
 
-	rootmenu = gtk_menu_item_new_with_label(_(" IP "));
-	ipmenu = gtk_menu_new();
-	menuitem = gtk_menu_item_new_with_label(_(" IP设置 "));
-	gtk_menu_shell_append(GTK_MENU_SHELL(ipmenu), menuitem);
-	g_signal_connect(G_OBJECT(menuitem), "activate", G_CALLBACK(on_ip_menu_activate), NULL);
-	gtk_menu_item_set_submenu(GTK_MENU_ITEM(rootmenu), ipmenu);
-	gtk_menu_shell_append(GTK_MENU_SHELL(menubar), rootmenu);
+	force_verfic= gtk_menu_item_new_with_label(_(" 力传感器检定 "));
+	extensometer_verfic= gtk_menu_item_new_with_label(_(" 引伸计检定 "));
+	dis_verific= gtk_menu_item_new_with_label(_(" 位移检定 "));
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu2),force_verfic);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu2),extensometer_verfic);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu2),dis_verific);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(adjustmenu),menu2);
 
-	rootmenu = gtk_menu_item_new_with_label(_(" 退出 "));
-	exitmenu = gtk_menu_new();
-	menuitem = gtk_menu_item_new_with_label(_(" 退出 "));
-	gtk_menu_shell_append(GTK_MENU_SHELL(exitmenu), menuitem);
-	g_signal_connect(G_OBJECT(menuitem), "activate", G_CALLBACK(destroy), (gpointer)window);
-	gtk_menu_item_set_submenu(GTK_MENU_ITEM(rootmenu), exitmenu);
-	gtk_menu_shell_append(GTK_MENU_SHELL(menubar), rootmenu);
+	compress_db= gtk_menu_item_new_with_label(_(" 压缩数据库 "));
+	i_o_db= gtk_menu_item_new_with_label(_(" 数据库导入导出 "));
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu3), compress_db);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu3), i_o_db);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(toolmenu), menu3);
 
-	/* Use grid to layout gtkWidgets */
-	gtk_window_add_accel_group(GTK_WINDOW(window), accel_group);
-	/* gtk_grid_attach (GtkGrid  *grid,GtkWidget *child,gint left,gint top,gint width,gint height); */
+	lock= gtk_menu_item_new_with_label(_(" 锁定 "));
+	Float= gtk_menu_item_new_with_label(_(" 浮动 "));
+	auto_arrange= gtk_menu_item_new_with_label(_(" 自动排列 "));
+	array_win= gtk_menu_item_new_with_label(_(" 排列子窗口 "));
+	move_up_left= gtk_menu_item_new_with_label(_(" 移动到屏幕左上角 "));
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu4), lock);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu4), Float);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu4), auto_arrange);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu4), array_win);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu4), move_up_left);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(winmenu), menu4);
+
+	about= gtk_menu_item_new_with_label(_(" 关于 "));
+	reg= gtk_menu_item_new_with_label(_(" 注册 "));
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu5), about);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu5), reg);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(helpmenu), menu5);
+
+	gtk_menu_shell_append(GTK_MENU_SHELL(menubar), setmenu);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menubar), adjustmenu);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menubar), toolmenu);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menubar), winmenu);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menubar), helpmenu);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menubar), ipmenu);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menubar), exitmenu);
+
+	g_signal_connect(G_OBJECT(ipmenu), "activate", G_CALLBACK(on_ip_menu_activate), NULL);
+	g_signal_connect(G_OBJECT(exitmenu), "activate", G_CALLBACK(destroy), (gpointer)window);
+
 
 	gtk_grid_attach(GTK_GRID(grid), menubar, 0, 0, 1200, 30);
 	

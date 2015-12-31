@@ -21,6 +21,9 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="socket_msg.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{157CC103-B7D0-4BF8-A298-F14BC9E58D0B}</ProjectGuid>
     <RootNamespace>GProject</RootNamespace>
