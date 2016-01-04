@@ -80,9 +80,6 @@ gboolean has_run_time = FALSE;
 gboolean has_date_time = FALSE;
 gdouble arc_i = 0.0;
 
-gboolean buffer1_ready = true;
-gboolean buffer2_ready = true;
-
 gint recv_num=0;
 gint filter_buf[8][101];
 
@@ -109,6 +106,9 @@ struct EntryStruct entries;
 gdouble time_second = 0.0;
 gboolean start=false;
 
+guchar *bufferIn = (guchar *)g_malloc(sizeof(guchar) * 512);
+socket_cache *cache = (socket_cache *)g_malloc(sizeof(socket_cache) + 512 * sizeof(gchar));
+
 gchar *_(gchar *c)
 {
 	return(g_locale_to_utf8(c, -1,NULL, NULL, NULL));
@@ -121,7 +121,7 @@ gchar *_(gchar *c)
 //initialize the socket_msg structure
 void socket_msg_init(socket_msg *msg)
 {
-	msg->len = 0;
+	msg->len = 29;
 	msg->type = 0;
 }
 
@@ -240,10 +240,10 @@ void socket_msg_parse(gint fd, socket_cache *cache)
 			q = (cache->current + 1) % SOCKET_MSG_CACHE_SIZE;
 			m = (cache->current + 2) % SOCKET_MSG_CACHE_SIZE;
 			n = (cache->current + 3) % SOCKET_MSG_CACHE_SIZE;
-			if ((cache->buf[p] == (SOCKET_MSG_HEAD >> 24)) &&
-				(cache->buf[q] == (SOCKET_MSG_HEAD >> 16)) &&
-				(cache->buf[m] == (SOCKET_MSG_HEAD >> 8)) &&
-				(cache->buf[n] == (SOCKET_MSG_HEAD & 0xff))) 
+			if ((cache->buf[p] == (0x55)) &&
+				(cache->buf[q] == (0x55)) &&
+				(cache->buf[m] == (0x55)) &&
+				(cache->buf[n] == (0x55))) 
 			{
 
 				find = TRUE;
@@ -260,10 +260,10 @@ void socket_msg_parse(gint fd, socket_cache *cache)
 		}
 
 		if (find == TRUE) {
-			//move 2 items towards next
-			cache->current = (cache->current + 2) % SOCKET_MSG_CACHE_SIZE;
+			//move 4 items towards next
+			cache->current = (cache->current + 4) % SOCKET_MSG_CACHE_SIZE;
 			//we found the head format, go on to find Type byte
-			cache->strategy = SEARCH_TYPE;
+			cache->strategy = SEARCH_FIRST;
 		}
 		else {
 			//if there is no head format ,delete previouse items
@@ -277,10 +277,7 @@ void socket_msg_parse(gint fd, socket_cache *cache)
 		if (current_len < SOCKET_MSG_FIRST_SIZE) {
 			return;
 		}
-		//get the value of type
-		//cache->type = cache->buf[cache->current];
-		cache->recv_msg.type = cache->buf[cache->current];
-		cache->current = (cache->current + 1) % SOCKET_MSG_CACHE_SIZE;
+		cache->current = (cache->current + 3) % SOCKET_MSG_CACHE_SIZE;
 		//we found Type byte, go on to find Datalen format
 		cache->strategy = SEARCH_TYPE;
 		break;
@@ -301,10 +298,7 @@ void socket_msg_parse(gint fd, socket_cache *cache)
 		if (current_len < SOCKET_MSG_SECOND_SIZE) {
 			return;
 		}
-		//get the value of type
-		//cache->type = cache->buf[cache->current];
-		cache->recv_msg.type = cache->buf[cache->current];
-		cache->current = (cache->current + 1) % SOCKET_MSG_CACHE_SIZE;
+		cache->current = (cache->current + 4) % SOCKET_MSG_CACHE_SIZE;
 		//we found Type byte, go on to find Datalen format
 		cache->strategy = SEARCH_END;
 		break;
@@ -319,17 +313,17 @@ void socket_msg_parse(gint fd, socket_cache *cache)
 		q = (cache->current + cache->recv_msg.len + 1) % SOCKET_MSG_CACHE_SIZE;
 		m = (cache->current + cache->recv_msg.len + 2) % SOCKET_MSG_CACHE_SIZE;
 		n = (cache->current + cache->recv_msg.len + 3) % SOCKET_MSG_CACHE_SIZE;
-		if ((cache->buf[p] == (SOCKET_MSG_END >> 24)) &&
-			(cache->buf[q] == (SOCKET_MSG_END >> 16)) &&
-			(cache->buf[m] == (SOCKET_MSG_END >> 8)) &&
-			(cache->buf[n] == (SOCKET_MSG_END & 0xff))) {
-			socket_msg_cpy_out(cache, cache->recv_msg.data, cache->current, cache->recv_msg.len);
+		if ((cache->buf[p] == (0xaa)) &&
+			(cache->buf[q] == (0xaa)) &&
+			(cache->buf[m] == (0xaa)) &&
+			(cache->buf[n] == (0xaa))) {
+			socket_msg_cpy_out(cache, cache->recv_msg.data, cache->current - SOCKET_MSG_SECOND_SIZE, cache->recv_msg.len);
 			if (cache->handle != NULL) {
 				//cache->handle(fd, cache->buf + cache->data_index, cache->data_len);
 				cache->handle(fd, &cache->recv_msg, cache->args);
 			}
 			//delete all previous items
-			cache->current = (q + 1) % SOCKET_MSG_CACHE_SIZE;
+			cache->current = (n + 1) % SOCKET_MSG_CACHE_SIZE;
 			cache->front = cache->current;
 			cache->len -= (cache->recv_msg.len + SOCKET_MSG_FORMAT_SIZE);
 			cache->tag = 0;
@@ -338,11 +332,11 @@ void socket_msg_parse(gint fd, socket_cache *cache)
 		else {
 			g_print("socket message without end: %x!\n", SOCKET_MSG_END);
 			//delete the frist item 'a5'
-			//move back 3 items
-			cache->current = cache->current >= 3 ? (cache->current - 3) : (SOCKET_MSG_CACHE_SIZE - 3 + cache->current);
+			//move back 5 items
+			cache->current = cache->current >= 5 ? (cache->current - 5) : (SOCKET_MSG_CACHE_SIZE - 5 + cache->current);
 			cache->front = cache->current;
-			//length sub 3
-			cache->len -= 3;
+			//length sub 5
+			cache->len -= 5;
 			cache->tag = 0;
 
 		}
@@ -1093,18 +1087,6 @@ void show_local_text(const gchar* text)
 *    Description:  average filter function
 ***************************************************************************************/
 
-void average()
-{
-	if (buffer1_ready == false) 
-	{
-		buffer1_ready = true;
-	}
-	if (buffer2_ready == false) 
-	{
-		buffer2_ready = true;
-	}
-}
-
 
 /***************************************************************************************
 *    Function:
@@ -1164,32 +1146,41 @@ void on_ip_menu_activate(GtkMenuItem* item, gpointer data)
 	gtk_widget_show_all(ip_menu_window);
 }
 
+void socket_msg_handle(int fd, socket_msg *msg, void *args) 
+{
+	g_print("msg_handle has recv:%x\n", msg);
+}
+
 /* A new thread,to receive message */
 gpointer recv_func(gpointer arg)
 {
 	gint i = 0;
-	gchar *bufferIn=NULL;
+	//guchar *bufferIn = (guchar *)g_malloc(sizeof(guchar) * 512);
+	//socket_cache *cache = (socket_cache *)g_malloc(sizeof(socket_cache) + 512 * sizeof(gchar));
 	gint n = 0;
-	socket_cache *cache=NULL;
+
 	gint len = 45;
 	GError *error = NULL;
+	socket_cache_init(cache, socket_msg_handle);
 	while (1)
 	{
-		if (g_socket_receive(sock, bufferIn, 512, NULL, &error)<0)
+		if (g_socket_receive(sock, (gchar *)bufferIn, 512, NULL, &error)<0)
 		{
 			perror("server recv error\n");
+			break;
 			exit(1);
 		}
-		n = socket_msg_cpy_in(cache, (guchar *)bufferIn, len);
+		n=socket_msg_cpy_in(cache, bufferIn, len);
+		//g_print("%x",bufferIn);
 		if (n == 0) {
 			return FALSE;//cache is full	
 		}
 		//parse and handle socket message from cache
 		socket_msg_parse(1, cache);
 
-		//if (n == len) {
-		//	return TRUE; //copy completed
-		//}
+		if (n == len) {
+			continue; //copy completed
+		}
 		//move the pointer
 		bufferIn = bufferIn + n;
 		len = len - n;
@@ -1612,7 +1603,8 @@ static void destroy(GtkWidget *window, gpointer data)
 		g_free(datas[i]);
 	}
 	g_free(datas);
-
+	g_free(bufferIn);
+	g_free(cache);
 	gtk_main_quit();
 }
 

@@ -10,16 +10,17 @@ d:\gtk+\include\gtk-3.0\gdk\gdkversionmacros.h : warning C4819: 该文件包含�
 d:\gtk+\include\gtk-3.0\gdk\gdkversionmacros.h : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
 d:\gtk+\include\gtk-3.0\gdk\gdkversionmacros.h : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
 c:\users\jiang\desktop\gproject\gproject\main.cpp(262): warning C4805: “==”: 在操作中将类型“gint”与类型“bool”混合不安全
-c:\users\jiang\desktop\gproject\gproject\main.cpp(400): warning C4305: “=”: 从“int”到“guchar”截断
-c:\users\jiang\desktop\gproject\gproject\main.cpp(400): warning C4309: “=”: 截断常量值
-c:\users\jiang\desktop\gproject\gproject\main.cpp(409): warning C4305: “=”: 从“unsigned int”到“guchar”截断
-c:\users\jiang\desktop\gproject\gproject\main.cpp(409): warning C4309: “=”: 截断常量值
-c:\users\jiang\desktop\gproject\gproject\main.cpp(427): warning C4554: “<<”: 检查运算符优先级可能存在的错误；使用圆括号阐明优先级
-c:\users\jiang\desktop\gproject\gproject\main.cpp(804): warning C4244: “参数”: 从“gdouble”转换到“gint”，可能丢失数据
-c:\users\jiang\desktop\gproject\gproject\main.cpp(939): warning C4244: “参数”: 从“gdouble”转换到“gint”，可能丢失数据
-c:\users\jiang\desktop\gproject\gproject\main.cpp(1041): warning C4244: “参数”: 从“gdouble”转换到“gint”，可能丢失数据
-c:\users\jiang\desktop\gproject\gproject\main.cpp(1043): warning C4805: “==”: 在操作中将类型“gboolean”与类型“bool”混合不安全
-c:\users\jiang\desktop\gproject\gproject\main.cpp(466): warning C4715: “Filter”: 不是所有的控件路径都返回值
-c:\users\jiang\desktop\gproject\gproject\main.cpp(454): warning C4172: 返回局部变量或临时变量的地址: data
-c:\users\jiang\desktop\gproject\gproject\main.cpp(464): warning C4172: 返回局部变量或临时变量的地址: data
+c:\users\jiang\desktop\gproject\gproject\main.cpp(394): warning C4305: “=”: 从“int”到“guchar”截断
+c:\users\jiang\desktop\gproject\gproject\main.cpp(394): warning C4309: “=”: 截断常量值
+c:\users\jiang\desktop\gproject\gproject\main.cpp(403): warning C4305: “=”: 从“unsigned int”到“guchar”截断
+c:\users\jiang\desktop\gproject\gproject\main.cpp(403): warning C4309: “=”: 截断常量值
+c:\users\jiang\desktop\gproject\gproject\main.cpp(421): warning C4554: “<<”: 检查运算符优先级可能存在的错误；使用圆括号阐明优先级
+c:\users\jiang\desktop\gproject\gproject\main.cpp(798): warning C4244: “参数”: 从“gdouble”转换到“gint”，可能丢失数据
+c:\users\jiang\desktop\gproject\gproject\main.cpp(933): warning C4244: “参数”: 从“gdouble”转换到“gint”，可能丢失数据
+c:\users\jiang\desktop\gproject\gproject\main.cpp(1035): warning C4244: “参数”: 从“gdouble”转换到“gint”，可能丢失数据
+c:\users\jiang\desktop\gproject\gproject\main.cpp(1037): warning C4805: “==”: 在操作中将类型“gboolean”与类型“bool”混合不安全
+c:\users\jiang\desktop\gproject\gproject\main.cpp(460): warning C4715: “Filter”: 不是所有的控件路径都返回值
+c:\users\jiang\desktop\gproject\gproject\main.cpp(448): warning C4172: 返回局部变量或临时变量的地址: data
+c:\users\jiang\desktop\gproject\gproject\main.cpp(458): warning C4172: 返回局部变量或临时变量的地址: data
+c:\users\jiang\desktop\gproject\gproject\main.cpp(1188): warning C4715: “recv_func”: 不是所有的控件路径都返回值
   GProject.vcxproj -> C:\Users\jiang\Desktop\GProject\Debug\GProject.exe

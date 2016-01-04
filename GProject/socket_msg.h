@@ -28,15 +28,14 @@ extern "C" {
 	//size of format of one message
 #define SOCKET_MSG_FORMAT_SIZE \
 (SOCKET_MSG_HEAD_SIZE+ \
- SOCKET_MSG_TYPE_SIZE+ \
+ SOCKET_MSG_FIRST_SIZE+ \
+SOCKET_MSG_TYPE_SIZE+ \
+SOCKET_MSG_SECOND_SIZE+ \
  SOCKET_MSG_END_SIZE)
 	//total size of one message
 #define SOCKET_MSG_SIZE \
 (SOCKET_MSG_DATA_SIZE+ \
  SOCKET_MSG_FORMAT_SIZE)
-
-#define SOCKET_MSG_TYPE_IDENTITY	0x01
-#define SOCKET_MSG_TYPE_DATA		0x02
 
 
 	//=============================================================================
@@ -49,14 +48,14 @@ extern "C" {
 		SEARCH_FIRST,
 		SEARCH_TYPE,
 		//SEARCH_CS,
-		SEARCH_END,
 		SEARCH_SECOND,
+		SEARCH_END,
 		SEARCH_NONE
 	}cache_strategy;
 
 
 	typedef struct {
-		guchar data[SOCKET_MSG_SIZE];			//data
+		guchar data[SOCKET_MSG_DATA_SIZE];			//data
 		gint len;
 		guchar type;
 	}socket_msg;
@@ -75,7 +74,6 @@ extern "C" {
 		tp_socket_msg_handle handle;
 		void* args;										//external 	parameter
 		socket_msg recv_msg;
-
 	}socket_cache;
 
 
