@@ -91,6 +91,15 @@ struct EntryStruct
 {
 	GtkEntry *IP;
 	GtkEntry *Port;
+	GtkEntry *batch; 
+	GtkEntry *num;
+	GtkEntry *time;
+	GtkEntry *temp;
+	GtkEntry *name;
+	GtkEntry *combo;
+	GtkEntry *outer;
+	GtkEntry *thick;
+	GtkEntry *span;
 };
 
 struct EntryStruct1
@@ -399,8 +408,8 @@ void socket_msg_package(socket_msg *msg, guchar type, guchar *buf, gint len)
 		return;
 	}
 	//head
-	msg->data[0] = SOCKET_MSG_HEAD >> 8;
-	msg->data[1] = SOCKET_MSG_HEAD & 0xff;
+	msg->data[0] = (SOCKET_MSG_HEAD >> 8);
+	msg->data[1] = (SOCKET_MSG_HEAD & 0xff);
 	//type
 	msg->data[2] = type;
 	//data len
@@ -1173,35 +1182,92 @@ GtkWidget *create_ip_menu_window()
 	GtkWidget *fixed;
 	GtkWidget *close_button;
 	GtkWidget *label1, *label2;
-	//struct EntryStruct entries;
+	GtkWidget *batch_label, *num_label, *time_label, *temp_label, *name_label, *shape_label, *outer_label, *thick_label, *span_label;
+	GtkWidget *box;
+	gint x, y, z;
+
+	ip_menu_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_position(GTK_WINDOW(ip_menu_window), GTK_WIN_POS_CENTER);
+	gtk_window_set_title(GTK_WINDOW(ip_menu_window), "Window For Setting");
+	gtk_window_set_default_size(GTK_WINDOW(ip_menu_window), 250, 450);
 
 	label1 = gtk_label_new("IP:");
 	label2 = gtk_label_new("Port:");
 	entries.IP = (GtkEntry *)gtk_entry_new();
 	entries.Port = (GtkEntry *)gtk_entry_new();
 
-	ip_menu_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_position(GTK_WINDOW(ip_menu_window), GTK_WIN_POS_CENTER);
-	gtk_window_set_title(GTK_WINDOW(ip_menu_window), "Window For IP Set");
-	gtk_window_set_default_size(GTK_WINDOW(ip_menu_window), 300, 180);
 	fixed = gtk_fixed_new();
+	box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+
+	entries.batch = (GtkEntry *)gtk_entry_new();
+	batch_label = gtk_label_new(_("试验批号:"));
+	entries.num = (GtkEntry *)gtk_entry_new();
+	num_label = gtk_label_new(_("试验编号:"));
+	entries.time = (GtkEntry *)gtk_entry_new();
+	time_label = gtk_label_new(_("实验日期:"));
+	entries.temp = (GtkEntry *)gtk_entry_new();
+	temp_label = gtk_label_new(_("温度(℃):"));
+	entries.name = (GtkEntry *)gtk_entry_new();
+	name_label = gtk_label_new(_("试验人:"));
+	entries.combo = (GtkEntry *)gtk_combo_box_text_new_with_entry();
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(entries.combo), _("板材"));
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(entries.combo), _("圆材"));
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(entries.combo), _("管材"));
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(entries.combo), _("其他"));
+	gtk_combo_box_set_active(GTK_COMBO_BOX(entries.combo), 0);
+	shape_label = gtk_label_new(_("试样形状:"));
+	entries.outer = (GtkEntry *)gtk_entry_new();
+	outer_label = gtk_label_new(_("试样宽度(mm):"));
+	entries.thick = (GtkEntry *)gtk_entry_new();
+	thick_label = gtk_label_new(_("试样厚度(mm):"));
+	entries.span = (GtkEntry *)gtk_entry_new();
+	span_label = gtk_label_new(_("跨距(mm):"));
 
 	close_button = gtk_button_new_with_label(_("确定"));
 
-	gtk_fixed_put(GTK_FIXED(fixed), label1, 40, 30);
-	gtk_fixed_put(GTK_FIXED(fixed), GTK_WIDGET(entries.IP), 80, 30);
-	gtk_fixed_put(GTK_FIXED(fixed), label2, 40, 80);
-	gtk_fixed_put(GTK_FIXED(fixed), GTK_WIDGET(entries.Port), 80, 80);
-	gtk_fixed_put(GTK_FIXED(fixed), close_button, 80, 130);
-
-	gtk_widget_set_size_request(label1, 50, 30);
-	gtk_widget_set_size_request(GTK_WIDGET(entries.IP), 100, 30);
-	gtk_widget_set_size_request(label2, 50, 30);
-	gtk_widget_set_size_request(GTK_WIDGET(entries.Port), 100, 30);
-	gtk_widget_set_size_request(close_button, 100, 30);;
+	x = 120;
+	y = 0;
+	z = 40;
+	y = y + z;
+	gtk_fixed_put(GTK_FIXED(fixed), label1, 20, y);
+	gtk_fixed_put(GTK_FIXED(fixed), GTK_WIDGET(entries.IP), x, y);
+	y = y + z;
+	gtk_fixed_put(GTK_FIXED(fixed), label2, 20, y);
+	gtk_fixed_put(GTK_FIXED(fixed), GTK_WIDGET(entries.Port), x, y);
+	y = y + z;
+	gtk_fixed_put(GTK_FIXED(fixed), batch_label, 20, y);
+	gtk_fixed_put(GTK_FIXED(fixed), GTK_WIDGET(entries.batch), x, y);
+	y = y + z;
+	gtk_fixed_put(GTK_FIXED(fixed), num_label, 20, y);
+	gtk_fixed_put(GTK_FIXED(fixed), GTK_WIDGET(entries.num), x, y);
+	y = y + z;
+	gtk_fixed_put(GTK_FIXED(fixed), time_label, 20, y);
+	gtk_fixed_put(GTK_FIXED(fixed), GTK_WIDGET(entries.time), x, y);
+	y = y + z;
+	gtk_fixed_put(GTK_FIXED(fixed), temp_label, 20, y);
+	gtk_fixed_put(GTK_FIXED(fixed), GTK_WIDGET(entries.temp), x, y);
+	y = y + z;
+	gtk_fixed_put(GTK_FIXED(fixed), name_label, 20, y);
+	gtk_fixed_put(GTK_FIXED(fixed), GTK_WIDGET(entries.name), x, y);
+	y = y + z;
+	gtk_fixed_put(GTK_FIXED(fixed), shape_label, 20, y);
+	gtk_box_pack_start(GTK_BOX(box), GTK_WIDGET(entries.combo), FALSE, FALSE, 1);
+	gtk_fixed_put(GTK_FIXED(fixed), box, 100, y);
+	y = y + z;
+	gtk_fixed_put(GTK_FIXED(fixed), outer_label, 20, y);
+	gtk_fixed_put(GTK_FIXED(fixed), GTK_WIDGET(entries.outer), x, y);
+	y = y + z;
+	gtk_fixed_put(GTK_FIXED(fixed), thick_label, 20, y);
+	gtk_fixed_put(GTK_FIXED(fixed), GTK_WIDGET(entries.thick), x, y);
+	y = y + z;
+	gtk_fixed_put(GTK_FIXED(fixed), span_label, 20, y);
+	gtk_fixed_put(GTK_FIXED(fixed), GTK_WIDGET(entries.span), x, y);
+	y = y + 60;
+	gtk_fixed_put(GTK_FIXED(fixed), close_button, 20, y);
 
 	gtk_container_add(GTK_CONTAINER(ip_menu_window), fixed);
 	g_signal_connect(G_OBJECT(close_button), "clicked", G_CALLBACK(on_ip_button1_clicked), (gpointer)&entries);
+	
 	return ip_menu_window;
 }
 
@@ -1283,7 +1349,6 @@ void send_func()//(const gchar *text)
 gint build_socket(const gchar *serv_ip, const gchar *serv_port)
 {
 	gboolean res;
-	//g_type_init();
 	GInetAddress *iface_address = g_inet_address_new_from_string(serv_ip);
 	GSocketAddress *connect_address = g_inet_socket_address_new(iface_address, atoi(serv_port));
 	GError *err = NULL;
@@ -1601,7 +1666,7 @@ GtkWidget *create_report_window()
 	GtkWidget *report_window;
 	GtkWidget *fixed;
 	GtkWidget *report_button;
-	GtkWidget *batch, *num, *time, *temp, *name, *shape, *outer, *thick, *span, *Fbb, *sigma, *Eb;
+	GtkWidget *batch1, *num1, *time1, *temp1, *name1, *shape1, *outer1, *thick1, *span1, *Fbb, *sigma, *Eb;
 	GtkWidget *batch_label, *num_label, *time_label, *temp_label, *name_label, *shape_label, *outer_label, *thick_label, *span_label, *Fbb_label, *sigma_label, *Eb_label, *mult_label;
 	GtkWidget *calendar;
 	GtkWidget *combo;
@@ -1612,34 +1677,27 @@ GtkWidget *create_report_window()
 	report_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_position(GTK_WINDOW(report_window), GTK_WIN_POS_CENTER);
 	fixed = gtk_fixed_new();
-	report_button = gtk_button_new_with_label("Create report");
+	report_button = gtk_button_new_with_label(_("创建报表"));
 	calendar = gtk_calendar_new();
-	combo = gtk_combo_box_text_new_with_entry();
-	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), _("圆材"));
-	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), _("板材"));
-	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), _("管材"));
-	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), _("其他"));
-	gtk_combo_box_set_active(GTK_COMBO_BOX(combo), 1);
 	box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
-	box1 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
 
-	batch = gtk_entry_new();
+	batch1 = gtk_label_new(gtk_entry_get_text(entries.batch));
 	batch_label = gtk_label_new(_("试验批号:"));
-	num = gtk_entry_new();
+	num1 = gtk_label_new(gtk_entry_get_text(entries.num));
 	num_label = gtk_label_new(_("试验编号:"));
-	time = gtk_entry_new();
+	time1 = gtk_label_new(gtk_entry_get_text(entries.time));
 	time_label = gtk_label_new(_("实验日期:"));
-	temp = gtk_entry_new();
+	temp1 = gtk_label_new(gtk_entry_get_text(entries.temp));
 	temp_label = gtk_label_new(_("温度(℃):"));
-	name = gtk_entry_new();
+	name1 = gtk_label_new(gtk_entry_get_text(entries.name));
 	name_label = gtk_label_new(_("试验人:"));
-	shape = gtk_entry_new();
+	shape1 = gtk_label_new(gtk_entry_get_text(entries.combo));
 	shape_label = gtk_label_new(_("试样形状:"));
-	outer = gtk_entry_new();
+	outer1 = gtk_label_new(gtk_entry_get_text(entries.outer));
 	outer_label = gtk_label_new(_("试样宽度(mm):"));
-	thick = gtk_entry_new();
+	thick1 = gtk_label_new(gtk_entry_get_text(entries.thick));
 	thick_label = gtk_label_new(_("试样厚度(mm):"));
-	span = gtk_entry_new();
+	span1 = gtk_label_new(gtk_entry_get_text(entries.span));
 	span_label = gtk_label_new(_("跨距(mm):"));
 	Fbb = gtk_entry_new();
 	Fbb_label = gtk_label_new(_("Fbb(kN):"));
@@ -1647,10 +1705,9 @@ GtkWidget *create_report_window()
 	sigma_label = gtk_label_new(_("Rbb(MPa):"));
 	Eb = gtk_entry_new();
 	Eb_label = gtk_label_new(_("mE(MPa):"));
-	mult_label = gtk_label_new(_("*"));
 
 	gtk_window_set_title(GTK_WINDOW(report_window), "Window For Report");
-	gtk_window_set_default_size(GTK_WINDOW(report_window), 120, 450);
+	gtk_window_set_default_size(GTK_WINDOW(report_window), 120, 500);
 
 	gtk_widget_set_size_request(report_button, 80, 20);
 
@@ -1658,36 +1715,31 @@ GtkWidget *create_report_window()
 	y = 30;
 	z = 40;
 	gtk_fixed_put(GTK_FIXED(fixed), batch_label, 20, y);
-	gtk_fixed_put(GTK_FIXED(fixed), batch, x, y);
+	gtk_fixed_put(GTK_FIXED(fixed), batch1, x, y);
 	y = y + z;
 	gtk_fixed_put(GTK_FIXED(fixed), num_label, 20, y);
-	gtk_fixed_put(GTK_FIXED(fixed), num, x, y);
+	gtk_fixed_put(GTK_FIXED(fixed), num1, x, y);
 	y = y + z;
 	gtk_fixed_put(GTK_FIXED(fixed), time_label, 20, y);
-	gtk_fixed_put(GTK_FIXED(fixed), time, x, y);
+	gtk_fixed_put(GTK_FIXED(fixed), time1, x, y);
 	y = y + z;
 	gtk_fixed_put(GTK_FIXED(fixed), temp_label, 20, y);
-	gtk_fixed_put(GTK_FIXED(fixed), temp, x, y);
+	gtk_fixed_put(GTK_FIXED(fixed), temp1, x, y);
 	y = y + z;
 	gtk_fixed_put(GTK_FIXED(fixed), name_label, 20, y);
-	gtk_fixed_put(GTK_FIXED(fixed), name, x, y);
+	gtk_fixed_put(GTK_FIXED(fixed), name1, x, y);
 	y = y + z;
 	gtk_fixed_put(GTK_FIXED(fixed), shape_label, 20, y);
-	gtk_box_pack_start(GTK_BOX(box1), combo, FALSE, FALSE, 1);
-	gtk_fixed_put(GTK_FIXED(fixed), box1, 100, y);
+	gtk_fixed_put(GTK_FIXED(fixed), shape1, 100, y);
 	y = y + z;
 	gtk_fixed_put(GTK_FIXED(fixed), outer_label, 20, y);
-	gtk_fixed_put(GTK_FIXED(fixed), outer, x, y);
+	gtk_fixed_put(GTK_FIXED(fixed), outer1, x, y);
 	y = y + z;
 	gtk_fixed_put(GTK_FIXED(fixed), thick_label, 20, y);
-	gtk_fixed_put(GTK_FIXED(fixed), thick, x, y);
-	//gtk_box_pack_start(GTK_BOX(box), outer, FALSE, FALSE, 3);
-	//gtk_box_pack_start(GTK_BOX(box), thick_label, FALSE, FALSE, 3);
-	//gtk_box_pack_start(GTK_BOX(box), thick, FALSE, FALSE, 3);
-	//gtk_fixed_put(GTK_FIXED(fixed), box, 20, y);
+	gtk_fixed_put(GTK_FIXED(fixed), thick1, x, y);
 	y = y + z;
 	gtk_fixed_put(GTK_FIXED(fixed), span_label, 20, y);
-	gtk_fixed_put(GTK_FIXED(fixed), span, x, y);
+	gtk_fixed_put(GTK_FIXED(fixed), span1, x, y);
 	y = y + z;
 	gtk_fixed_put(GTK_FIXED(fixed), Fbb_label, 20, y);
 	gtk_fixed_put(GTK_FIXED(fixed), Fbb, x, y);
@@ -1697,7 +1749,7 @@ GtkWidget *create_report_window()
 	y = y + z;
 	gtk_fixed_put(GTK_FIXED(fixed), Eb_label, 20, y);
 	gtk_fixed_put(GTK_FIXED(fixed), Eb, x, y);
-	y = y + 60;
+	y = y + z;
 	gtk_fixed_put(GTK_FIXED(fixed), report_button, 20, y);
 
 	gtk_container_add(GTK_CONTAINER(report_window), fixed);
@@ -1854,7 +1906,7 @@ gint main(gint argc, char *argv[])
 	/* Scroll window */
 	scrolled1 = gtk_scrolled_window_new(NULL, NULL);
 	/* Create a textbox */
-	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled1), rece_view);
+	//gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled1), rece_view);
 	/* Setting of window */
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled1), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
@@ -1969,37 +2021,6 @@ gint main(gint argc, char *argv[])
 	gtk_grid_attach(GTK_GRID(grid), sector, 900, 200, 300, 300);
 	gtk_grid_attach(GTK_GRID(grid), conn_button, 960, 540, 70, 70);
 	gtk_grid_attach(GTK_GRID(grid), pre_report_button, 1070, 540, 70, 70);
-
-
-	//gtk_grid_attach(GTK_GRID(grid), label1, 0, 50, 50, 30);
-	//gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(entries.IP), 50, 50, 100, 30);
-	//gtk_grid_attach(GTK_GRID(grid), label2, 150, 50, 50, 40);
-	//gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(entries.Port), 200, 50, 50, 30);
-	////gtk_grid_attach(GTK_GRID(grid), conn_button, 0, 100, 80, 30);
-	////gtk_grid_attach(GTK_GRID(grid), close_button, 100, 100, 80, 30);
-	//gtk_grid_attach(GTK_GRID(grid), conn_button, 250, 50, 80, 30);
-	//gtk_grid_attach(GTK_GRID(grid), close_button, 330, 50, 80, 30);
-
-	//gtk_grid_attach(GTK_GRID(grid), num, 5, 150, 687, 65);
-	//gtk_grid_attach(GTK_GRID(grid), da, 5, 220, 687, 450);
-
-	//gtk_grid_attach(GTK_GRID(grid), label9, 700, 150, 50, 50);
-	//gtk_grid_attach(GTK_GRID(grid), scrolled1, 765, 150, 50, 50);
-	//gtk_grid_attach(GTK_GRID(grid), label3, 690, 200, 80, 50);
-	//gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(entries1.DA1), 765, 200, 50, 50);
-	//gtk_grid_attach(GTK_GRID(grid), label4, 690, 230, 80, 50);
-	//gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(entries1.DA2), 765, 230, 50, 50);
-	//gtk_grid_attach(GTK_GRID(grid), label5, 690, 260, 80, 50);
-	//gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(entries1.D0), 765, 260, 50, 50);
-	//gtk_grid_attach(GTK_GRID(grid), label6, 690, 290, 80, 50);
-	//gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(entries1.PWM), 765, 290, 50, 50);
-	//gtk_grid_attach(GTK_GRID(grid), label7, 690, 320, 80, 50);
-	//gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(entries1.PWM_Duty), 765, 320, 50, 50);
-	//gtk_grid_attach(GTK_GRID(grid), label8, 690, 350, 80, 50);
-	//gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(entries1.PWM_DIR), 765, 350, 50, 50);
-	//gtk_grid_attach(GTK_GRID(grid), send_button, 765, 400, 50, 20);
-	//gtk_grid_attach(GTK_GRID(grid), pre_report_button, 765, 430, 50, 20);
-	//gtk_grid_attach(GTK_GRID(grid), sector, 700, 470, 115, 175);
 
 	gtk_grid_set_row_spacing(GTK_GRID(grid), 1);
 	gtk_grid_set_column_spacing(GTK_GRID(grid), 1);
