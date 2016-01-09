@@ -23,7 +23,7 @@ extern "C" {
 #define SOCKET_MSG_SECOND_SIZE		4
 #define SOCKET_MSG_END_SIZE			4				//size of message end
 
-#define SOCKET_MSG_CACHE_SIZE		(512)			//client cache size
+#define SOCKET_MSG_CACHE_SIZE		(45000)			//client cache size
 #define SOCKET_MSG_DATA_SIZE		(29)			//size of data buffer in one message
 	//size of format of one message
 #define SOCKET_MSG_FORMAT_SIZE \
