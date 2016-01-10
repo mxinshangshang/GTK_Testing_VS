@@ -2,7 +2,7 @@
 *  File name:      Fatigue_Tester.c
 *  Author:         Mxin Chiang
 *  Version:        1.0
-*  Date:           01.06.2016
+*  Date:           01.09.2016
 *  Description:    Design a software accepts data sent from fatigue testing machine,
 *                  waveform presentation, recording in MySQL database,
 *                  data processing and generate pdf reports.
@@ -59,8 +59,8 @@
 gint check_tbl(MYSQL* mysql, gchar *name);
 gint check_db(MYSQL *mysql, gchar *db_name);
 
-gint **datas;
-gint num = 0;
+gdouble **datas;
+gint data_num = 0;
 time_t now;
 struct tm *curTime;
 
@@ -77,21 +77,21 @@ GtkWidget *ip_menu_window = NULL;
 
 gint last_point[8];
 gint biggest = 0;
-gint top_y = 50;
-gboolean has_max = FALSE;
-gboolean has_min = FALSE;
-gboolean has_run_time = FALSE;
-gboolean has_date_time = FALSE;
+gint top_x = 80;
+gint top_y = 100;
 gdouble arc_i = 0.0;
 
 gint recv_num = 0;
 gint filter_buf[8][101];
 
+gchar txt_name[20];
+FILE *fp = NULL;  /* test file */
+
 struct EntryStruct
 {
 	GtkEntry *IP;
 	GtkEntry *Port;
-	GtkEntry *batch; 
+	GtkEntry *batch;
 	GtkEntry *num;
 	GtkEntry *time;
 	GtkEntry *temp;
@@ -123,8 +123,12 @@ guchar *bufferIn;
 socket_cache *cache;
 gdouble P1 = 0.00;
 gdouble P2 = 0.00;
+gdouble P3 = 0.00;
 gdouble AD1 = 0.00;
-
+gdouble AD2 = 0.00;
+gdouble AD3 = 0.00;
+gdouble AD4 = 0.00;
+gchar DI;
 gchar *_(gchar *c)
 {
 	return(g_locale_to_utf8(c, -1, NULL, NULL, NULL));
@@ -664,12 +668,11 @@ draw_callback(GtkWidget *widget,
 	gpointer   data)
 {
 	gdouble i = 0, x = 0, y = 0;
-	gint j = 0, x_o = 0;
+	gint j = 0;
 	gchar c[32];
-	gint recv[8] = { 0 };
-	gdouble big_sp = 0, small_sp = 0, width = 0, height = 0;
+	gdouble recv[8] = { 0 };
+	gdouble big_y_sp = 0, small_y_sp = 0, big_x_sp = 0, small_x_sp = 0, width = 0, height = 0;
 	gdouble Blank = 25;
-	gint next = 25;
 	for (j = 0; j<8; j++)
 	{
 		recv[j] = 0;
@@ -681,38 +684,30 @@ draw_callback(GtkWidget *widget,
 	cairo_set_source_surface(cr, surface, 0, 0);
 	cairo_paint(cr);
 
-	big_sp = (height - 2 * Blank) / 10;
-	small_sp = (height - 2 * Blank) / top_y;
+	for (j = 0; j < data_num; j++)
+	{
+		if (top_x < datas[j][0])
+		{
+			top_x = datas[j][0];
+			top_x = (top_x / 10 + 1) * 10;
+		}
+		if (top_y < datas[j][3])
+		{
+			top_y = datas[j][3];
+			top_y = (top_y / 10 + 1) * 10;
+		}
+	}
 
-	if (num >= 1) /* Calculate the maximum of current data */
-	{
-		recv[0] = datas[num - 1][0];
-		recv[1] = datas[num - 1][1];
-		recv[2] = datas[num - 1][2];
-		if (recv[0]>recv[1])
-		{
-			if (recv[2]>recv[0]) biggest = recv[2];
-			else biggest = recv[0];
-		}
-		else
-		{
-			if (recv[2]>recv[1]) biggest = recv[2];
-			else biggest = recv[1];
-		}
-	}
-	else biggest = 50;
-	if (biggest >= top_y) /*Adjust the space of axis */
-	{
-		top_y = biggest / 50 * 50 + 50;
-		big_sp = (height - 2 * Blank) / 10;
-		small_sp = (height - 2 * Blank) / top_y;
-	}
+	big_y_sp = (height - 2 * Blank) / (top_y / 10);
+	big_x_sp = (width - 2 * Blank) / (top_x / 10);
+	small_y_sp = (height - 2 * Blank) / top_y;
+	small_x_sp = (height - 2 * Blank) / top_x;
 
 	cairo_set_source_rgb(cr, 0, 0, 0);
 	cairo_set_line_width(cr, 0.5);
 	cairo_rectangle(cr, Blank, Blank, width - 2 * Blank, height - 2 * Blank);/* Draw outer border */
 
-	for (i = height - Blank; i>Blank - 1; i = i - big_sp)/* Draw Y-axis */
+	for (i = height - Blank; i>Blank - 1; i = i - big_y_sp)/* Draw Y-axis */
 	{
 		cairo_move_to(cr, Blank - 6, i);
 		cairo_line_to(cr, width - Blank, i);
@@ -723,16 +718,12 @@ draw_callback(GtkWidget *widget,
 		y = y + top_y / 10;
 		cairo_show_text(cr, c);
 	}
-	for (i = height - Blank; i>Blank; i = i - small_sp)
+	for (i = height - Blank; i>Blank; i = i - small_y_sp)
 	{
 		cairo_move_to(cr, Blank - 3, i);
 		cairo_line_to(cr, Blank, i);
 	}
-	if (num>700)
-	{
-		x = ((num - 700) / 100 + 1) * 100;
-	}
-	for (i = Blank; i <= (width - Blank); i = i + 100)/* Draw X-axis */
+	for (i = Blank; i <= (width - Blank); i = i + big_x_sp)/* Draw X-axis */
 	{
 		cairo_move_to(cr, i, Blank);
 		cairo_line_to(cr, i, height - Blank + 6);
@@ -740,68 +731,28 @@ draw_callback(GtkWidget *widget,
 		cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 		cairo_set_font_size(cr, 12.0);
 		sprintf(c, "%.0lf", x);
-		x = x + 100;
+		x = x + 10;
 		cairo_show_text(cr, c);
 	}
-	for (i = Blank; i<(width - Blank); i = i + 10)
+	for (i = Blank; i<(width - Blank); i = i + small_x_sp)
 	{
 		cairo_move_to(cr, i, height - Blank);
 		cairo_line_to(cr, i, height - Blank + 3);
 	}
 	cairo_stroke(cr);
 
-	if (datas[0] != NULL)
+	recv[0] = Blank;//x
+	recv[3] = height - Blank;//y
+	cairo_set_source_rgb(cr, 0, 1, 0);
+	cairo_set_line_width(cr, 1.5);
+	for (j = 0; j < data_num; j++)/* drawing lines */
 	{
-		for (j = 0; j<8; j++)
-		{
-			last_point[j] = 0;
-		}
-
-		if (num>700)/* X-axis starting value adjustment */
-		{
-			x_o = ((num - 700) / 100 + 1) * 100;
-		}
-		else x_o = 0;
-
-		next = 24;
-		for (j = x_o; j<num; j++)
-		{
-			cairo_set_source_rgb(cr, 0, 1, 0);/* Draw green line pulse1 */
-			cairo_set_line_width(cr, 1.5);
-			recv[0] = datas[j][0];
-			cairo_move_to(cr, next, height - Blank - last_point[0] * small_sp);
-			next++;
-			cairo_line_to(cr, next, height - Blank - recv[0] * small_sp);
-			last_point[0] = recv[0];
-			cairo_stroke(cr);
-
-			next--;
-			cairo_set_source_rgb(cr, 1, 0, 0);/* Draw red line pulse2 */
-			cairo_set_line_width(cr, 1.5);
-			recv[1] = datas[j][1];
-			cairo_move_to(cr, next, height - Blank - last_point[1] * small_sp);
-			next++;
-			cairo_line_to(cr, next, height - Blank - recv[1] * small_sp);
-			last_point[1] = recv[1];
-			cairo_stroke(cr);
-
-			next--;
-			cairo_set_source_rgb(cr, 0, 0, 1);/* Draw blue line pulse3 */
-			cairo_set_line_width(cr, 1.5);
-			recv[2] = datas[j][2];
-			cairo_move_to(cr, next, height - Blank - last_point[2] * small_sp);
-			next++;
-			cairo_line_to(cr, next, height - Blank - recv[2] * small_sp);
-			last_point[2] = recv[2];
-			cairo_stroke(cr);
-		}
-		next--;
+		cairo_move_to(cr, datas[j][0] / top_x * (width - 2 * Blank) + Blank, height - Blank - datas[j][3] / top_y * (height - 2 * Blank));
+		cairo_line_to(cr, recv[0], recv[3]);
+		recv[0] = datas[j][0];//x
+		recv[3] = datas[j][3];//y
 	}
-
-	//cairo_set_line_width (cr, 5);
-	//cairo_set_source_rgb(cr, 0, 0, 0);	
-	//cairo_rectangle (cr, 0, 0, width, height);//5, 12
-	//cairo_stroke (cr);
+	cairo_stroke(cr);
 	return FALSE;
 }
 
@@ -1225,6 +1176,8 @@ GtkWidget *create_ip_menu_window()
 
 	close_button = gtk_button_new_with_label(_("È·¶¨"));
 
+	gtk_widget_set_size_request(close_button, 100, 20);
+
 	x = 120;
 	y = 0;
 	z = 40;
@@ -1252,7 +1205,7 @@ GtkWidget *create_ip_menu_window()
 	y = y + z;
 	gtk_fixed_put(GTK_FIXED(fixed), shape_label, 20, y);
 	gtk_box_pack_start(GTK_BOX(box), GTK_WIDGET(entries.combo), FALSE, FALSE, 1);
-	gtk_fixed_put(GTK_FIXED(fixed), box, 100, y);
+	gtk_fixed_put(GTK_FIXED(fixed), box, x, y);
 	y = y + z;
 	gtk_fixed_put(GTK_FIXED(fixed), outer_label, 20, y);
 	gtk_fixed_put(GTK_FIXED(fixed), GTK_WIDGET(entries.outer), x, y);
@@ -1267,7 +1220,7 @@ GtkWidget *create_ip_menu_window()
 
 	gtk_container_add(GTK_CONTAINER(ip_menu_window), fixed);
 	g_signal_connect(G_OBJECT(close_button), "clicked", G_CALLBACK(on_ip_button1_clicked), (gpointer)&entries);
-	
+
 	return ip_menu_window;
 }
 
@@ -1280,23 +1233,38 @@ void on_ip_menu_activate(GtkMenuItem* item, gpointer data)
 
 void socket_msg_handle(gint fd, socket_msg *msg, void *args)
 {
-	//gint i = 0;
-	//for (i = 0; i < 29; i++) 
+	P1 = ((gdouble)(msg->data[0] << 24 | msg->data[1] << 16 | msg->data[2] << 8 | msg->data[3]) / (gdouble)0xffffffff) * 16777215 / 250;
+	P2 = ((gdouble)(msg->data[4] << 24 | msg->data[5] << 16 | msg->data[6] << 8 | msg->data[7]) / (gdouble)0xffffffff) * 16777215 / 250;
+	P3 = ((gdouble)(msg->data[8] << 24 | msg->data[9] << 16 | msg->data[10] << 8 | msg->data[11]) / (gdouble)0xffffffff) * 16777215 / 250;
+	AD1 = ((gdouble)((msg->data[13] & 0x7f) << 16 | msg->data[14] << 8 | msg->data[15]) / (gdouble)0x7fffff) * 600;
+	AD2 = ((gdouble)((msg->data[17] & 0x7f) << 16 | msg->data[18] << 8 | msg->data[19]) / (gdouble)0x7fffff) * 600;
+	AD3 = ((gdouble)((msg->data[21] & 0x7f) << 16 | msg->data[22] << 8 | msg->data[23]) / (gdouble)0x7fffff) * 600;
+	AD4 = ((gdouble)((msg->data[25] & 0x7f) << 16 | msg->data[26] << 8 | msg->data[27]) / (gdouble)0x7fffff) * 600;
+	DI = msg->data[28];
+	datas[data_num][0] = P1;
+	datas[data_num][1] = P2;
+	datas[data_num][2] = P3;
+	datas[data_num][3] = AD1;
+	datas[data_num][4] = AD2;
+	datas[data_num][5] = AD3;
+	datas[data_num][6] = AD4;
+	datas[data_num][7] = DI;
+	data_num++;
+
+	//if ((fp = fopen(txt_name, "a")) == NULL)
 	//{
-	//	msg->data[i] = msg->data[i] + 0x30;
+	//	printf("can not open file.!\n");
 	//}
-	P1 = ((gdouble)(msg->data[1] << 16 | msg->data[2] << 8 | msg->data[3]) / (gdouble)0xffffff) * 16777215 / 250;
-	P2 = ((gdouble)(msg->data[5] << 16 | msg->data[6] << 8 | msg->data[7]) / (gdouble)0xffffff) * 16777215 / 250;
-	AD1 = ((gdouble)(msg->data[13] << 16 | msg->data[14] << 8 | msg->data[15]) / (gdouble)0x7fffff) * 600;
-	g_print("data after parse: %.2f,%.2f,%.2f\n", P1, P2, AD1);
+	//fprintf(fp, "%0.6lf,%0.6lf,%0.6lf,%0.6lf\r",AD1,AD2,AD3,AD4);
+	//fclose(fp);
+
+	g_print("data after parse: %0.2lf,%0.2lf,%0.2lf,\n", P1, P2, AD1);
 }
 
 /* A new thread,to receive message */
 gpointer recv_func(gpointer arg)
 {
 	gint i = 0;
-	//guchar *bufferIn = (guchar *)g_malloc(sizeof(guchar) * 512);
-	//socket_cache *cache = (socket_cache *)g_malloc(sizeof(socket_cache) + 512 * sizeof(gchar));
 	gint n = 0;
 
 	gint len = 45;
@@ -1444,26 +1412,6 @@ void on_button1_clicked(GtkButton *button, gpointer user_data)
 *    Description:  create report
 ***************************************************************************************/
 
-static void check_max(GtkWidget *max, gpointer user_data)
-{
-	has_max = TRUE;
-}
-
-static void check_min(GtkWidget *min, gpointer user_data)
-{
-	has_min = TRUE;
-}
-
-static void check_run_time(GtkWidget *run_time, gpointer user_data)
-{
-	has_run_time = TRUE;
-}
-
-static void check_date_time(GtkWidget *date_time, gpointer user_data)
-{
-	has_date_time = TRUE;
-}
-
 /* Report button function */
 void on_report_button_clicked(GtkButton *button, gpointer user_data)
 {
@@ -1491,23 +1439,25 @@ void on_report_button_clicked(GtkButton *button, gpointer user_data)
 	big_sp = (height - 2 * Blank) / 10;
 	small_sp = (height - 2 * Blank) / top_y;
 
-	if (num >= 1) /* Calculate the maximum of current data */
-	{
-		recv[0] = datas[num - 1][0];
-		recv[1] = datas[num - 1][1];
-		recv[2] = datas[num - 1][2];
-		if (recv[0]>recv[1])
-		{
-			if (recv[2]>recv[0]) biggest = recv[2];
-			else biggest = recv[0];
-		}
-		else
-		{
-			if (recv[2]>recv[1]) biggest = recv[2];
-			else biggest = recv[1];
-		}
-	}
-	else biggest = 50;
+	recv[3] = datas[data_num - 1][3];
+	//if (num >= 1) /* Calculate the maximum of current data */
+	//{
+	//	recv[0] = datas[num - 1][0];
+	//	recv[1] = datas[num - 1][1];
+	//	recv[2] = datas[num - 1][2];
+	//	if (recv[0]>recv[1])
+	//	{
+	//		if (recv[2]>recv[0]) biggest = recv[2];
+	//		else biggest = recv[0];
+	//	}
+	//	else
+	//	{
+	//		if (recv[2]>recv[1]) biggest = recv[2];
+	//		else biggest = recv[1];
+	//	}
+	//}
+	//else 
+	biggest = 50;
 	if (biggest >= top_y) /*Adjust the space of axis */
 	{
 		top_y = biggest / 50 * 50 + 50;
@@ -1524,47 +1474,6 @@ void on_report_button_clicked(GtkButton *button, gpointer user_data)
 
 	tr_down = 80;
 	tr_right = 100;
-
-	if ((gboolean)TRUE == has_max)
-	{
-		tr_down = tr_down + 30;
-		cairo_move_to(cr, 40, tr_down);
-		cairo_set_source_rgb(cr, 0, 0, 0);
-		cairo_select_font_face(cr, "Georgia", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-		cairo_set_font_size(cr, 12);
-		cairo_show_text(cr, "max value:");
-		cairo_stroke(cr);
-	}
-	if ((gboolean)TRUE == has_min)
-	{
-		tr_down = tr_down + 30;
-		cairo_move_to(cr, 40, tr_down);
-		cairo_set_source_rgb(cr, 0, 0, 0);
-		cairo_select_font_face(cr, "Georgia", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-		cairo_set_font_size(cr, 12);
-		cairo_show_text(cr, "min value:");
-		cairo_stroke(cr);
-	}
-	if ((gboolean)TRUE == has_date_time)
-	{
-		tr_down = tr_down + 30;
-		cairo_move_to(cr, 40, tr_down);
-		cairo_set_source_rgb(cr, 0, 0, 0);
-		cairo_select_font_face(cr, "Georgia", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-		cairo_set_font_size(cr, 12);
-		cairo_show_text(cr, "date time:");
-		cairo_stroke(cr);
-	}
-	if ((gboolean)TRUE == has_run_time)
-	{
-		tr_down = tr_down + 30;
-		cairo_move_to(cr, 40, tr_down);
-		cairo_set_source_rgb(cr, 0, 0, 0);
-		cairo_select_font_face(cr, "Georgia", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-		cairo_set_font_size(cr, 12);
-		cairo_show_text(cr, "running time:");
-		cairo_stroke(cr);
-	}
 
 	cairo_set_source_rgb(cr, 0, 0, 0);
 	cairo_set_line_width(cr, 0.5);
@@ -1586,9 +1495,9 @@ void on_report_button_clicked(GtkButton *button, gpointer user_data)
 		cairo_move_to(cr, Blank + tr_right - 3, i);
 		cairo_line_to(cr, Blank + tr_right, i);
 	}
-	if (num>700)
+	if (data_num>700)
 	{
-		x = ((num - 700) / 100 + 1) * 100;
+		x = ((data_num - 700) / 100 + 1) * 100;
 	}
 	for (i = Blank + tr_right; i <= (width + tr_right - Blank); i = i + 50)/* Draw X-axis */
 	{
@@ -1615,43 +1524,52 @@ void on_report_button_clicked(GtkButton *button, gpointer user_data)
 			last_point[j] = 0;
 		}
 
-		if (num>700)/* X-axis starting value adjustment */
+		if (data_num>700)/* X-axis starting value adjustment */
 		{
-			x_o = ((num - 700) / 100 + 1) * 100;
+			x_o = ((data_num - 700) / 100 + 1) * 100;
 		}
 		else x_o = 0;
 
 		next = 48;
-		for (j = x_o; j<num; j++)
+		for (j = x_o; j<data_num; j++)
 		{
 			cairo_set_source_rgb(cr, 0, 1, 0);/* Draw green line pulse1 */
 			cairo_set_line_width(cr, 1.2);
-			recv[0] = datas[j][0];
+			recv[3] = datas[j][3];
 			cairo_move_to(cr, next / 2 + tr_right, tr_down + height - Blank - last_point[0] * small_sp);
 			next++;
-			cairo_line_to(cr, next / 2 + tr_right, tr_down + height - Blank - recv[0] * small_sp);
-			last_point[0] = recv[0];
+			cairo_line_to(cr, next / 2 + tr_right, tr_down + height - Blank - recv[3] * small_sp);
+			last_point[0] = recv[3];
 			cairo_stroke(cr);
 
-			next--;
-			cairo_set_source_rgb(cr, 1, 0, 0);/* Draw red line pulse2 */
-			cairo_set_line_width(cr, 1.2);
-			recv[1] = datas[j][1];
-			cairo_move_to(cr, next / 2 + tr_right, tr_down + height - Blank - last_point[1] * small_sp);
-			next++;
-			cairo_line_to(cr, next / 2 + tr_right, tr_down + height - Blank - recv[1] * small_sp);
-			last_point[1] = recv[1];
-			cairo_stroke(cr);
+			//cairo_set_source_rgb(cr, 0, 1, 0);/* Draw green line pulse1 */
+			//cairo_set_line_width(cr, 1.2);
+			//recv[0] = datas[j][0];
+			//cairo_move_to(cr, next / 2 + tr_right, tr_down + height - Blank - last_point[0] * small_sp);
+			//next++;
+			//cairo_line_to(cr, next / 2 + tr_right, tr_down + height - Blank - recv[0] * small_sp);
+			//last_point[0] = recv[0];
+			//cairo_stroke(cr);
 
-			next--;
-			cairo_set_source_rgb(cr, 0, 0, 1);/* Draw blue line pulse3 */
-			cairo_set_line_width(cr, 1.2);
-			recv[2] = datas[j][2];
-			cairo_move_to(cr, next / 2 + tr_right, tr_down + height - Blank - last_point[2] * small_sp);
-			next++;
-			cairo_line_to(cr, next / 2 + tr_right, tr_down + height - Blank - recv[2] * small_sp);
-			last_point[2] = recv[2];
-			cairo_stroke(cr);
+			//next--;
+			//cairo_set_source_rgb(cr, 1, 0, 0);/* Draw red line pulse2 */
+			//cairo_set_line_width(cr, 1.2);
+			//recv[1] = datas[j][1];
+			//cairo_move_to(cr, next / 2 + tr_right, tr_down + height - Blank - last_point[1] * small_sp);
+			//next++;
+			//cairo_line_to(cr, next / 2 + tr_right, tr_down + height - Blank - recv[1] * small_sp);
+			//last_point[1] = recv[1];
+			//cairo_stroke(cr);
+
+			//next--;
+			//cairo_set_source_rgb(cr, 0, 0, 1);/* Draw blue line pulse3 */
+			//cairo_set_line_width(cr, 1.2);
+			//recv[2] = datas[j][2];
+			//cairo_move_to(cr, next / 2 + tr_right, tr_down + height - Blank - last_point[2] * small_sp);
+			//next++;
+			//cairo_line_to(cr, next / 2 + tr_right, tr_down + height - Blank - recv[2] * small_sp);
+			//last_point[2] = recv[2];
+			//cairo_stroke(cr);
 		}
 		next--;
 	}
@@ -1709,7 +1627,7 @@ GtkWidget *create_report_window()
 	gtk_window_set_title(GTK_WINDOW(report_window), "Window For Report");
 	gtk_window_set_default_size(GTK_WINDOW(report_window), 120, 500);
 
-	gtk_widget_set_size_request(report_button, 80, 20);
+	gtk_widget_set_size_request(report_button, 100, 20);
 
 	x = 120;
 	y = 30;
@@ -1825,13 +1743,18 @@ gint main(gint argc, char *argv[])
 	//struct EntryStruct entries;
 	struct EntryStruct1 entries1;
 
-	datas = (gint **)g_malloc(sizeof(gint *) * 360000);
-	for (i = 0; i<360000; i++)
+	datas = (gdouble **)g_malloc(sizeof(gdouble *) * 8000 * 600);//8000*600s
+	for (i = 0; i<(8000 * 600); i++)
 	{
-		datas[i] = (gint *)g_malloc(sizeof(gint) * 8);
+		datas[i] = (gdouble *)g_malloc(sizeof(gdouble) * 8);
 	}
 	bufferIn = (guchar *)g_malloc(sizeof(guchar) * 45000);
 	cache = (socket_cache *)g_malloc(sizeof(socket_cache) + 45000 * sizeof(gchar));
+
+	for (i = 0; i<8; i++)
+	{
+		datas[0][i] = 0;
+	}
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 #ifdef _LINUX_
@@ -1898,6 +1821,18 @@ gint main(gint argc, char *argv[])
 	g_timeout_add(10, (GSourceFunc)time_handler, (gpointer)da);
 	g_timeout_add(100, (GSourceFunc)time_handler2, (gpointer)sector);
 	g_timeout_add(100, (GSourceFunc)time_handler3, (gpointer)num);
+
+	sprintf(txt_name, "recv_data.csv");
+
+	if ((fp = fopen(txt_name, "w+")) == NULL)
+	{
+		g_print("can not open file.!\n");
+	}
+	//fprintf(fp, "DATE....\t\t\tTEMP\t\tHUMI\t\tDUST1\t\tDUST2\t\tDUST3\t\tPRESSURE\r\n");
+	fprintf(fp, "AD1,AD2,AD3,AD4\r");
+	fclose(fp);
+
+
 
 	/* Get the buffer of textbox */
 	show_buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(rece_view));

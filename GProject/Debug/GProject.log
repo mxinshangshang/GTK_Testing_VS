@@ -9,21 +9,25 @@ d:\gtk+\include\gtk-3.0\gdk\gdkversionmacros.h : warning C4819: 该文件包含�
 d:\gtk+\include\gtk-3.0\gdk\gdkversionmacros.h : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
 d:\gtk+\include\gtk-3.0\gdk\gdkversionmacros.h : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
 d:\gtk+\include\gtk-3.0\gdk\gdkversionmacros.h : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
-c:\users\jiang\desktop\gproject\gproject\main.cpp(278): warning C4805: “==”: 在操作中将类型“gint”与类型“bool”混合不安全
-c:\users\jiang\desktop\gproject\gproject\main.cpp(411): warning C4305: “=”: 从“int”到“guchar”截断
-c:\users\jiang\desktop\gproject\gproject\main.cpp(411): warning C4309: “=”: 截断常量值
-c:\users\jiang\desktop\gproject\gproject\main.cpp(420): warning C4305: “=”: 从“unsigned int”到“guchar”截断
-c:\users\jiang\desktop\gproject\gproject\main.cpp(420): warning C4309: “=”: 截断常量值
-c:\users\jiang\desktop\gproject\gproject\main.cpp(438): warning C4554: “<<”: 检查运算符优先级可能存在的错误；使用圆括号阐明优先级
-c:\users\jiang\desktop\gproject\gproject\main.cpp(815): warning C4244: “参数”: 从“gdouble”转换到“gint”，可能丢失数据
-c:\users\jiang\desktop\gproject\gproject\main.cpp(966): warning C4244: “参数”: 从“gdouble”转换到“gint”，可能丢失数据
-c:\users\jiang\desktop\gproject\gproject\main.cpp(1109): warning C4244: “参数”: 从“gdouble”转换到“gint”，可能丢失数据
-c:\users\jiang\desktop\gproject\gproject\main.cpp(1111): warning C4805: “==”: 在操作中将类型“gboolean”与类型“bool”混合不安全
-c:\users\jiang\desktop\gproject\gproject\main.cpp(1672): warning C4101: “combo”: 未引用的局部变量
-c:\users\jiang\desktop\gproject\gproject\main.cpp(1670): warning C4101: “mult_label”: 未引用的局部变量
-c:\users\jiang\desktop\gproject\gproject\main.cpp(1674): warning C4101: “box1”: 未引用的局部变量
-c:\users\jiang\desktop\gproject\gproject\main.cpp(477): warning C4715: “Filter”: 不是所有的控件路径都返回值
-c:\users\jiang\desktop\gproject\gproject\main.cpp(465): warning C4172: 返回局部变量或临时变量的地址: data
-c:\users\jiang\desktop\gproject\gproject\main.cpp(475): warning C4172: 返回局部变量或临时变量的地址: data
-c:\users\jiang\desktop\gproject\gproject\main.cpp(1328): warning C4715: “recv_func”: 不是所有的控件路径都返回值
+c:\users\jiang\desktop\gproject\gproject\main.cpp(282): warning C4805: “==”: 在操作中将类型“gint”与类型“bool”混合不安全
+c:\users\jiang\desktop\gproject\gproject\main.cpp(415): warning C4305: “=”: 从“int”到“guchar”截断
+c:\users\jiang\desktop\gproject\gproject\main.cpp(415): warning C4309: “=”: 截断常量值
+c:\users\jiang\desktop\gproject\gproject\main.cpp(424): warning C4305: “=”: 从“unsigned int”到“guchar”截断
+c:\users\jiang\desktop\gproject\gproject\main.cpp(424): warning C4309: “=”: 截断常量值
+c:\users\jiang\desktop\gproject\gproject\main.cpp(442): warning C4554: “<<”: 检查运算符优先级可能存在的错误；使用圆括号阐明优先级
+c:\users\jiang\desktop\gproject\gproject\main.cpp(691): warning C4244: “=”: 从“gdouble”转换到“gint”，可能丢失数据
+c:\users\jiang\desktop\gproject\gproject\main.cpp(696): warning C4244: “=”: 从“gdouble”转换到“gint”，可能丢失数据
+c:\users\jiang\desktop\gproject\gproject\main.cpp(766): warning C4244: “参数”: 从“gdouble”转换到“gint”，可能丢失数据
+c:\users\jiang\desktop\gproject\gproject\main.cpp(917): warning C4244: “参数”: 从“gdouble”转换到“gint”，可能丢失数据
+c:\users\jiang\desktop\gproject\gproject\main.cpp(1060): warning C4244: “参数”: 从“gdouble”转换到“gint”，可能丢失数据
+c:\users\jiang\desktop\gproject\gproject\main.cpp(1062): warning C4805: “==”: 在操作中将类型“gboolean”与类型“bool”混合不安全
+c:\users\jiang\desktop\gproject\gproject\main.cpp(1442): warning C4244: “=”: 从“gdouble”转换到“gint”，可能丢失数据
+c:\users\jiang\desktop\gproject\gproject\main.cpp(1538): warning C4244: “=”: 从“gdouble”转换到“gint”，可能丢失数据
+c:\users\jiang\desktop\gproject\gproject\main.cpp(1590): warning C4101: “combo”: 未引用的局部变量
+c:\users\jiang\desktop\gproject\gproject\main.cpp(1588): warning C4101: “mult_label”: 未引用的局部变量
+c:\users\jiang\desktop\gproject\gproject\main.cpp(1592): warning C4101: “box1”: 未引用的局部变量
+c:\users\jiang\desktop\gproject\gproject\main.cpp(481): warning C4715: “Filter”: 不是所有的控件路径都返回值
+c:\users\jiang\desktop\gproject\gproject\main.cpp(469): warning C4172: 返回局部变量或临时变量的地址: data
+c:\users\jiang\desktop\gproject\gproject\main.cpp(479): warning C4172: 返回局部变量或临时变量的地址: data
+c:\users\jiang\desktop\gproject\gproject\main.cpp(1296): warning C4715: “recv_func”: 不是所有的控件路径都返回值
   GProject.vcxproj -> C:\Users\jiang\Desktop\GProject\Debug\GProject.exe
