@@ -77,15 +77,16 @@ GtkWidget *ip_menu_window = NULL;
 
 gint last_point[8];
 gint biggest = 0;
-gint top_x = 80;
+gint top_x = 8;
 gint top_y = 100;
 gdouble arc_i = 0.0;
 
+gdouble recv_temp[8] = { 0 };
 gint recv_num = 0;
 gint filter_buf[8][101];
 
-gchar txt_name[20];
-FILE *fp = NULL;  /* test file */
+//gchar txt_name[20];
+//FILE *fp = NULL;  /* test file */
 
 struct EntryStruct
 {
@@ -670,12 +671,11 @@ draw_callback(GtkWidget *widget,
 	gdouble i = 0, x = 0, y = 0;
 	gint j = 0;
 	gchar c[32];
-	gdouble recv[8] = { 0 };
 	gdouble big_y_sp = 0, small_y_sp = 0, big_x_sp = 0, small_x_sp = 0, width = 0, height = 0;
 	gdouble Blank = 25;
 	for (j = 0; j<8; j++)
 	{
-		recv[j] = 0;
+		recv_temp[j] = 0;
 	}
 
 	width = gtk_widget_get_allocated_width(widget);
@@ -689,7 +689,8 @@ draw_callback(GtkWidget *widget,
 		if (top_x < datas[j][0])
 		{
 			top_x = datas[j][0];
-			top_x = (top_x / 10 + 1) * 10;
+			//top_x = (top_x / 10 + 1) * 10;
+			top_x = top_x+1;
 		}
 		if (top_y < datas[j][3])
 		{
@@ -699,9 +700,9 @@ draw_callback(GtkWidget *widget,
 	}
 
 	big_y_sp = (height - 2 * Blank) / (top_y / 10);
-	big_x_sp = (width - 2 * Blank) / (top_x / 10);
+	big_x_sp = (width - 2 * Blank) / top_x;
 	small_y_sp = (height - 2 * Blank) / top_y;
-	small_x_sp = (height - 2 * Blank) / top_x;
+	small_x_sp = (width - 2 * Blank) / top_x/10;
 
 	cairo_set_source_rgb(cr, 0, 0, 0);
 	cairo_set_line_width(cr, 0.5);
@@ -715,7 +716,7 @@ draw_callback(GtkWidget *widget,
 		cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 		cairo_set_font_size(cr, 12.0);
 		sprintf(c, "%.0lf", y);
-		y = y + top_y / 10;
+		y = y + 10;
 		cairo_show_text(cr, c);
 	}
 	for (i = height - Blank; i>Blank; i = i - small_y_sp)
@@ -731,7 +732,7 @@ draw_callback(GtkWidget *widget,
 		cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 		cairo_set_font_size(cr, 12.0);
 		sprintf(c, "%.0lf", x);
-		x = x + 10;
+		x = x + 1;
 		cairo_show_text(cr, c);
 	}
 	for (i = Blank; i<(width - Blank); i = i + small_x_sp)
@@ -741,16 +742,16 @@ draw_callback(GtkWidget *widget,
 	}
 	cairo_stroke(cr);
 
-	recv[0] = Blank;//x
-	recv[3] = height - Blank;//y
+	recv_temp[0] = Blank;//x
+	recv_temp[3] = height - Blank;//y
 	cairo_set_source_rgb(cr, 0, 1, 0);
 	cairo_set_line_width(cr, 1.5);
 	for (j = 0; j < data_num; j++)/* drawing lines */
 	{
 		cairo_move_to(cr, datas[j][0] / top_x * (width - 2 * Blank) + Blank, height - Blank - datas[j][3] / top_y * (height - 2 * Blank));
-		cairo_line_to(cr, recv[0], recv[3]);
-		recv[0] = datas[j][0];//x
-		recv[3] = datas[j][3];//y
+		cairo_line_to(cr, recv_temp[0], recv_temp[3]);
+		recv_temp[0] = datas[j][0] / top_x * (width - 2 * Blank) + Blank;//x
+		recv_temp[3] = height - Blank - datas[j][3] / top_y * (height - 2 * Blank);//y
 	}
 	cairo_stroke(cr);
 	return FALSE;
@@ -978,7 +979,7 @@ draw_callback3(GtkWidget *widget,
 	cairo_set_source_rgb(cr, 0.2, 1, 1);
 	cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 	cairo_set_font_size(cr, 50.0);
-	cairo_move_to(cr, width / 4 - 150, height - 30);
+	cairo_move_to(cr, width / 4 - 170, height - 30);
 #ifdef _LINUX_
 	sprintf(c, "%.2f", AD1);
 #endif
@@ -1233,7 +1234,8 @@ void on_ip_menu_activate(GtkMenuItem* item, gpointer data)
 
 void socket_msg_handle(gint fd, socket_msg *msg, void *args)
 {
-	P1 = ((gdouble)(msg->data[0] << 24 | msg->data[1] << 16 | msg->data[2] << 8 | msg->data[3]) / (gdouble)0xffffffff) * 16777215 / 250;
+	P1 = ((gdouble)((msg->data[1] & 0x7f) << 16 | msg->data[2] << 8 | msg->data[3]) / (gdouble)0x7fffff) * 600;
+	//P1 = ((gdouble)(msg->data[0] << 24 | msg->data[1] << 16 | msg->data[2] << 8 | msg->data[3]) / (gdouble)0xffffffff) * 16777215 / 250;
 	P2 = ((gdouble)(msg->data[4] << 24 | msg->data[5] << 16 | msg->data[6] << 8 | msg->data[7]) / (gdouble)0xffffffff) * 16777215 / 250;
 	P3 = ((gdouble)(msg->data[8] << 24 | msg->data[9] << 16 | msg->data[10] << 8 | msg->data[11]) / (gdouble)0xffffffff) * 16777215 / 250;
 	AD1 = ((gdouble)((msg->data[13] & 0x7f) << 16 | msg->data[14] << 8 | msg->data[15]) / (gdouble)0x7fffff) * 600;
@@ -1782,13 +1784,13 @@ gint main(gint argc, char *argv[])
 	label7 = gtk_label_new("Duty Cycle:");
 	label8 = gtk_label_new("PWM-DIR:");
 	label9 = gtk_label_new("Messages:");
-	label10 = gtk_label_new(_("试验力-时间曲线"));
+	label10 = gtk_label_new(_("试验力-挠度曲线"));
 	label11 = gtk_label_new(_("试验力(kN)"));
 	gtk_label_set_angle((GtkLabel *)label11, 90);
 	//gtk_widget_set_size_request(label11,1,10);/*设置标号尺寸*/
 	//gtk_label_set_justify(GTK_LABEL(label11), GTK_JUSTIFY_CENTER);/*设置标号对齐方式为居中对齐*/
 	//gtk_label_set_line_wrap(GTK_LABEL(label11), TRUE);/*打开自动换行*/
-	label12 = gtk_label_new(_("时间(s)"));
+	label12 = gtk_label_new(_("挠度(mm)"));
 	//entries.IP = (GtkEntry*)gtk_entry_new();
 	//entries.Port = (GtkEntry*)gtk_entry_new();
 	entries1.DA1 = (GtkEntry*)gtk_entry_new();
@@ -1822,17 +1824,13 @@ gint main(gint argc, char *argv[])
 	g_timeout_add(100, (GSourceFunc)time_handler2, (gpointer)sector);
 	g_timeout_add(100, (GSourceFunc)time_handler3, (gpointer)num);
 
-	sprintf(txt_name, "recv_data.csv");
-
-	if ((fp = fopen(txt_name, "w+")) == NULL)
-	{
-		g_print("can not open file.!\n");
-	}
-	//fprintf(fp, "DATE....\t\t\tTEMP\t\tHUMI\t\tDUST1\t\tDUST2\t\tDUST3\t\tPRESSURE\r\n");
-	fprintf(fp, "AD1,AD2,AD3,AD4\r");
-	fclose(fp);
-
-
+	//sprintf(txt_name, "recv_data.csv");
+	//if ((fp = fopen(txt_name, "w+")) == NULL)
+	//{
+	//	g_print("can not open file.!\n");
+	//}
+	//fprintf(fp, "AD1,AD2,AD3,AD4\r");
+	//fclose(fp);
 
 	/* Get the buffer of textbox */
 	show_buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(rece_view));
