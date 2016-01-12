@@ -12,6 +12,7 @@
 #define _CRT_SECURE_NO_DEPRECATE
 #define _WIN32_ 1    /* Compile for WIN32 */
 //#define _LINUX_ 1    /* Compile for Linux */
+//#define wei 1
 
 #ifdef _WIN32_
 #define WIN32_LEAN_AND_MEAN
@@ -85,8 +86,10 @@ gdouble recv_temp[8] = { 0 };
 gint recv_num = 0;
 gint filter_buf[8][101];
 
-//gchar txt_name[20];
-//FILE *fp = NULL;  /* test file */
+#ifdef wei
+gchar txt_name[20];
+FILE *fp = NULL;  /* test file */
+#endif
 
 struct EntryStruct
 {
@@ -1252,15 +1255,19 @@ void socket_msg_handle(gint fd, socket_msg *msg, void *args)
 	datas[data_num][6] = AD4;
 	datas[data_num][7] = DI;
 	data_num++;
-
-	//if ((fp = fopen(txt_name, "a")) == NULL)
-	//{
-	//	printf("can not open file.!\n");
-	//}
-	//fprintf(fp, "%0.6lf,%0.6lf,%0.6lf,%0.6lf\r",AD1,AD2,AD3,AD4);
-	//fclose(fp);
-
-	g_print("data after parse: %0.2lf,%0.2lf,%0.2lf,\n", P1, P2, AD1);
+#ifdef wei
+	AD1 = ((gdouble)((msg->data[13] & 0x7f) << 16 | msg->data[14] << 8 | msg->data[15]) / (gdouble)0x7fffff) * 2.5;
+	AD2 = ((gdouble)((msg->data[17] & 0x7f) << 16 | msg->data[18] << 8 | msg->data[19]) / (gdouble)0x7fffff) * 2.5;
+	AD3 = ((gdouble)((msg->data[21] & 0x7f) << 16 | msg->data[22] << 8 | msg->data[23]) / (gdouble)0x7fffff) * 2.5;
+	AD4 = ((gdouble)((msg->data[25] & 0x7f) << 16 | msg->data[26] << 8 | msg->data[27]) / (gdouble)0x7fffff) * 2.5;
+	if ((fp = fopen(txt_name, "a")) == NULL)
+	{
+		printf("can not open file.!\n");
+	}
+	fprintf(fp, "%0.6lf,%0.6lf,%0.6lf,%0.6lf\r",AD1,AD2,AD3,AD4);
+	fclose(fp);
+#endif
+	//g_print("data after parse:  %0.4lf,  %0.4lf\n", P1, AD1);
 }
 
 /* A new thread,to receive message */
@@ -1824,14 +1831,15 @@ gint main(gint argc, char *argv[])
 	g_timeout_add(100, (GSourceFunc)time_handler2, (gpointer)sector);
 	g_timeout_add(100, (GSourceFunc)time_handler3, (gpointer)num);
 
-	//sprintf(txt_name, "recv_data.csv");
-	//if ((fp = fopen(txt_name, "w+")) == NULL)
-	//{
-	//	g_print("can not open file.!\n");
-	//}
-	//fprintf(fp, "AD1,AD2,AD3,AD4\r");
-	//fclose(fp);
-
+#ifdef wei
+	sprintf(txt_name, "recv_data.csv");
+	if ((fp = fopen(txt_name, "w+")) == NULL)
+	{
+		g_print("can not open file.!\n");
+	}
+	fprintf(fp, "AD1,AD2,AD3,AD4\r");
+	fclose(fp);
+#endif
 	/* Get the buffer of textbox */
 	show_buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(rece_view));
 	/* Set textbox to diseditable */
