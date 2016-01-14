@@ -16,7 +16,7 @@
 
 #ifdef _WIN32_
 #define WIN32_LEAN_AND_MEAN
-#include <gtk-3.0\gtk\gtk.h>
+#include <gtk\gtk.h>
 #include <windows.h>
 #include <winsock2.h>
 #include "mysql.h"
@@ -133,6 +133,12 @@ gdouble AD2 = 0.00;
 gdouble AD3 = 0.00;
 gdouble AD4 = 0.00;
 gchar DI;
+gdouble Fbb_data = 0.0000;
+gdouble mE_k_data = 0.0000;
+gdouble mE_data = 0.0000;
+gdouble Rbb_data = 0.0000;
+gboolean mE_k_data_ok = FALSE;
+
 gchar *_(gchar *c)
 {
 	return(g_locale_to_utf8(c, -1, NULL, NULL, NULL));
@@ -331,8 +337,8 @@ void socket_msg_parse(gint fd, socket_cache *cache)
 		if (current_len < (cache->recv_msg.len + SOCKET_MSG_END_SIZE)) {
 			return;
 		}
-		//because we have known the data bytes' len, so we move the very  
-		//distance of datalen to see if there is End format. 
+		//because we have known the data bytes' len, so we move the very
+		//distance of datalen to see if there is End format.
 		p = (cache->current + cache->recv_msg.len) % SOCKET_MSG_CACHE_SIZE;
 		q = (cache->current + cache->recv_msg.len + 1) % SOCKET_MSG_CACHE_SIZE;
 		m = (cache->current + cache->recv_msg.len + 2) % SOCKET_MSG_CACHE_SIZE;
@@ -392,7 +398,7 @@ gint socket_msg_pre_parse(
 	while (1) {
 		n = socket_msg_cpy_in(cache, p, len);
 		if (n == 0) {
-			return FALSE;//cache is full	
+			return FALSE;//cache is full
 		}
 		//parse and handle socket message from cache
 		socket_msg_parse(fd, cache);
@@ -489,149 +495,151 @@ gint *Filter(gchar recv_data[])
 *    Function:
 *    Description:  Database Operations
 ***************************************************************************************/
-//
-//gint init_db()
-//{
-//	gint err = 0;
-//	MYSQL mysql;
-//
-//	if (!mysql_init(&mysql))
-//	{
-//		g_print("mysql_init:");
-//		exit(1);
-//	}
-//
-//	if (!mysql_real_connect(&mysql, SERVER_HOST, SERVER_USER, SERVER_PWD, NULL, 0, NULL, 0))
-//	{
-//		g_print("mysql_real_connect");
-//		exit(1);
-//	}
-//
-//	err = check_db(&mysql, DB_NAME);/* Check database */
-//	if (err != 0)
-//	{
-//		g_print("create db is err!\n");
-//		mysql_close(&mysql);
-//		exit(1);
-//	}
-//
-//	if (mysql_select_db(&mysql, DB_NAME)) /* Select which db */
-//	{
-//		g_print("mysql_select_db:");
-//		mysql_close(&mysql);
-//		exit(1);
-//	}
-//	if ((err = check_tbl(&mysql, TABLE_NAME)) != 0)/* Check table */
-//	{
-//		g_print("check_tbl is err!\n");
-//		mysql_close(&mysql);
-//		exit(1);
-//	}
-//	mysql_close(&mysql);
-//	return 0;
-//}
-//
-//gint check_db(MYSQL *mysql, gchar *db_name)
-//{
-//	MYSQL_ROW row = NULL;
-//	MYSQL_RES *res = NULL;
-//
-//	res = mysql_list_dbs(mysql, NULL);
-//	if (res)
-//	{
-//		while ((row = mysql_fetch_row(res)) != NULL)
-//		{
-//			g_print("db is %s\n", row[0]);
-//			if (strcmp(row[0], db_name) == 0)
-//			{
-//				g_print("find db %s\n", db_name);
-//				break;
-//			}
-//		}
-//		mysql_free_result(res);
-//	}
-//	if (!row) /* Build database if no this database */
-//	{
-//		char buf[128] = { 0 };
-//		strcpy(buf, "CREATE DATABASE ");
-//		strcat(buf, db_name);
-//		if (mysql_query(mysql, buf))
-//		{
-//			g_print("Query failed (%s)\n", mysql_error(mysql));
-//			exit(1);
-//		}
-//	}
-//	return 0;
-//}
-//
-//gint check_tbl(MYSQL* mysql, gchar *name)
-//{
-//	if (name == NULL)
-//		return 0;
-//	MYSQL_ROW row = NULL;
-//	MYSQL_RES *res = NULL;
-//	res = mysql_list_tables(mysql, NULL);
-//	if (res)
-//	{
-//		while ((row = mysql_fetch_row(res)) != NULL)
-//		{
-//			g_print("tables is %s\n", row[0]);
-//			if (strcmp(row[0], name) == 0)
-//			{
-//				g_print("find the table !\n");
-//				break;
-//			}
-//		}
-//		mysql_free_result(res);
-//	}
-//	if (!row) /* Create table if no this table */
-//	{
-//		char buf[1024] = { 0 };
-//		char qbuf[1024] = { 0 };
-//		snprintf(buf, sizeof(buf), "%s (SN INT(10) AUTO_INCREMENT NOT NULL,pulse1 INT(10),pulse2 INT(10),pulse3 INT(10),AD1 INT(10),AD2 INT(10),AD3 INT(10),AD4 INT(10),DI INT(10),PRIMARY KEY (SN));", TABLE_NAME);
-//		strcpy(qbuf, "CREATE TABLE ");
-//		strcat(qbuf, buf);
-//		if (mysql_query(mysql, qbuf))
-//		{
-//			g_print("Query failed (%s)\n", mysql_error(mysql));
-//			exit(1);
-//		}
-//	}
-//	return 0;
-//}
-//
-//void send_to_mysql(gint rcvd_mess[])
-//{
-//	gchar sql_insert[200];
-//	MYSQL my_connection;
-//	gint res;
-//
-//	mysql_init(&my_connection);
-//	if (mysql_real_connect(&my_connection, SERVER_HOST, SERVER_USER, SERVER_PWD, DB_NAME, 0, NULL, 0))
-//	{
-//		sprintf(sql_insert, "INSERT INTO mytables(pulse1,pulse2,pulse3,AD1,AD2,AD3,AD4,DI) VALUES('%d','%d','%d','%d','%d','%d','%d','%d')", rcvd_mess[0], rcvd_mess[1], rcvd_mess[2], rcvd_mess[3], rcvd_mess[4], rcvd_mess[5], rcvd_mess[6], rcvd_mess[7]);
-//		res = mysql_query(&my_connection, sql_insert);
-//
-//		if (!res)
-//		{
-//			//g_print("Inserted %lu rows\n", (unsigned long)mysql_affected_rows(&my_connection));
-//		}
-//		else
-//		{
-//			fprintf(stderr, "Insert error %d: %s\n", mysql_errno(&my_connection),
-//				mysql_error(&my_connection));
-//		}
-//		mysql_close(&my_connection);
-//	}
-//	else
-//	{
-//		if (mysql_errno(&my_connection))
-//		{
-//			fprintf(stderr, "Connection error %d: %s\n",
-//				mysql_errno(&my_connection), mysql_error(&my_connection));
-//		}
-//	}
-//}
+
+gint init_db()
+{
+	gint err = 0;
+	MYSQL mysql;
+
+	if (!mysql_init(&mysql))
+	{
+		g_print("mysql_init:");
+		exit(1);
+	}
+
+	if (!mysql_real_connect(&mysql, SERVER_HOST, SERVER_USER, SERVER_PWD, NULL, 0, NULL, 0))
+	{
+		g_print("mysql_real_connect");
+		exit(1);
+	}
+
+	err = check_db(&mysql, DB_NAME);/* Check database */
+	if (err != 0)
+	{
+		g_print("create db is err!\n");
+		mysql_close(&mysql);
+		exit(1);
+	}
+
+	if (mysql_select_db(&mysql, DB_NAME)) /* Select which db */
+	{
+		g_print("mysql_select_db:");
+		mysql_close(&mysql);
+		exit(1);
+	}
+	if ((err = check_tbl(&mysql, TABLE_NAME)) != 0)/* Check table */
+	{
+		g_print("check_tbl is err!\n");
+		mysql_close(&mysql);
+		exit(1);
+	}
+	mysql_close(&mysql);
+	return 0;
+}
+
+gint check_db(MYSQL *mysql, gchar *db_name)
+{
+	MYSQL_ROW row = NULL;
+	MYSQL_RES *res = NULL;
+
+	res = mysql_list_dbs(mysql, NULL);
+	if (res)
+	{
+		while ((row = mysql_fetch_row(res)) != NULL)
+		{
+			g_print("db is %s\n", row[0]);
+			if (strcmp(row[0], db_name) == 0)
+			{
+				g_print("find db %s\n", db_name);
+				break;
+			}
+		}
+		mysql_free_result(res);
+	}
+	if (!row) /* Build database if no this database */
+	{
+		char buf[128] = { 0 };
+		strcpy(buf, "CREATE DATABASE ");
+		strcat(buf, db_name);
+		if (mysql_query(mysql, buf))
+		{
+			g_print("Query failed (%s)\n", mysql_error(mysql));
+			exit(1);
+		}
+	}
+	return 0;
+}
+
+gint check_tbl(MYSQL* mysql, gchar *name)
+{
+	if (name == NULL)
+		return 0;
+	MYSQL_ROW row = NULL;
+	MYSQL_RES *res = NULL;
+	res = mysql_list_tables(mysql, NULL);
+	if (res)
+	{
+		while ((row = mysql_fetch_row(res)) != NULL)
+		{
+			g_print("tables is %s\n", row[0]);
+			if (strcmp(row[0], name) == 0)
+			{
+				g_print("find the table !\n");
+				break;
+			}
+		}
+		mysql_free_result(res);
+	}
+	if (!row) /* Create table if no this table */
+	{
+		char buf[1024] = { 0 };
+		char qbuf[1024] = { 0 };
+		snprintf(buf, sizeof(buf), "%s (SN INT(10) AUTO_INCREMENT NOT NULL,pulse1 DOUBLE(16,4),pulse2 DOUBLE(16,4),pulse3 DOUBLE(16,4),AD1 DOUBLE(16,4),AD2 DOUBLE(16,4),AD3 DOUBLE(16,4),AD4 DOUBLE(16,4),DI DOUBLE(16,4),PRIMARY KEY (SN));", TABLE_NAME);
+		//snprintf(buf,sizeof(buf),"%s (SN INT(10) AUTO_INCREMENT NOT NULL,pulse1 INT(10),pulse2 INT(10),pulse3 INT(10),AD1 INT(10),AD2 INT(10),AD3 INT(10),AD4 INT(10),DI INT(10),PRIMARY KEY (SN));",TABLE_NAME);
+		//		        strcpy(qbuf,"CREATE TABLE ");
+		strcpy(qbuf, "CREATE TABLE ");
+		strcat(qbuf, buf);
+		if (mysql_query(mysql, qbuf))
+		{
+			g_print("Query failed (%s)\n", mysql_error(mysql));
+			exit(1);
+		}
+	}
+	return 0;
+}
+
+void send_to_mysql(gdouble rcvd_mess[])
+{
+	gchar sql_insert[200];
+	MYSQL my_connection;
+	gint res;
+
+	mysql_init(&my_connection);
+	if (mysql_real_connect(&my_connection, SERVER_HOST, SERVER_USER, SERVER_PWD, DB_NAME, 0, NULL, 0))
+	{
+		sprintf(sql_insert, "INSERT INTO mytables(pulse1,pulse2,pulse3,AD1,AD2,AD3,AD4,DI) VALUES('%.6lf','%.6lf','%.6lf','%.6lf','%.6lf','%.6lf','%.6lf','%.6lf')", rcvd_mess[0], rcvd_mess[1], rcvd_mess[2], rcvd_mess[3], rcvd_mess[4], rcvd_mess[5], rcvd_mess[6], rcvd_mess[7]);
+		res = mysql_query(&my_connection, sql_insert);
+
+		if (!res)
+		{
+			//g_print("Inserted %lu rows\n", (unsigned long)mysql_affected_rows(&my_connection));
+		}
+		else
+		{
+			fprintf(stderr, "Insert error %d: %s\n", mysql_errno(&my_connection),
+				mysql_error(&my_connection));
+		}
+		mysql_close(&my_connection);
+	}
+	else
+	{
+		if (mysql_errno(&my_connection))
+		{
+			fprintf(stderr, "Connection error %d: %s\n",
+				mysql_errno(&my_connection), mysql_error(&my_connection));
+		}
+	}
+}
 
 /***************************************************************************************
 *    Function:
@@ -693,7 +701,7 @@ draw_callback(GtkWidget *widget,
 		{
 			top_x = datas[j][0];
 			//top_x = (top_x / 10 + 1) * 10;
-			top_x = top_x+1;
+			top_x = top_x + 1;
 		}
 		if (top_y < datas[j][3])
 		{
@@ -705,7 +713,7 @@ draw_callback(GtkWidget *widget,
 	big_y_sp = (height - 2 * Blank) / (top_y / 10);
 	big_x_sp = (width - 2 * Blank) / top_x;
 	small_y_sp = (height - 2 * Blank) / top_y;
-	small_x_sp = (width - 2 * Blank) / top_x/10;
+	small_x_sp = (width - 2 * Blank) / top_x / 10;
 
 	cairo_set_source_rgb(cr, 0, 0, 0);
 	cairo_set_line_width(cr, 0.5);
@@ -727,7 +735,7 @@ draw_callback(GtkWidget *widget,
 		cairo_move_to(cr, Blank - 3, i);
 		cairo_line_to(cr, Blank, i);
 	}
-	for (i = Blank; i <= (width - Blank); i = i + big_x_sp)/* Draw X-axis */
+	for (i = Blank; i <= (width - Blank) + 1; i = i + big_x_sp)/* Draw X-axis */
 	{
 		cairo_move_to(cr, i, Blank);
 		cairo_line_to(cr, i, height - Blank + 6);
@@ -811,7 +819,7 @@ draw_callback2(GtkWidget *widget,
 {
 #ifdef _LINUX_
 	PangoLayout *layout;
-#endif	
+#endif
 	gint i;
 	gchar c[32];
 	gdouble width, height;
@@ -870,7 +878,7 @@ draw_callback2(GtkWidget *widget,
 		sprintf(c, "%d", y);
 #endif
 #ifndef _LINUX_
-		sprintf_s(c, "%d", y);
+		sprintf(c, "%d", y);
 #endif
 		cairo_arc(cr, xc - 8, yc + 8, radius - 35, (36 * i - 90)  * (M_PI / 180.0), (36 * i - 90)  * (M_PI / 180.0));
 		cairo_show_text(cr, c);
@@ -881,15 +889,15 @@ draw_callback2(GtkWidget *widget,
 	cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 	cairo_set_source_rgba(cr, 0, 0, 0, 1);
 	cairo_move_to(cr, xc - 30, yc + 30);
-	//const gchar* y="试验力(kN)";
+	//const gchar* y="试验力(N)";
 #ifdef _LINUX_
 	layout = pango_cairo_create_layout(cr);
-	pango_layout_set_text(layout, "试验力(kN)", -1);
+	pango_layout_set_text(layout, "试验力(N)", -1);
 	pango_cairo_show_layout(cr, layout);
 	g_object_unref(layout);
 #endif
 #ifndef _LINUX_
-	cairo_show_text(cr, _("试验力(kN)"));
+	cairo_show_text(cr, _("试验力(N)"));
 #endif
 	cairo_stroke(cr);
 
@@ -962,7 +970,7 @@ draw_callback3(GtkWidget *widget,
 {
 #ifdef _LINUX_
 	PangoLayout *layout;
-#endif	
+#endif
 	gdouble width, height;
 	gchar c[8];
 	width = gtk_widget_get_allocated_width(widget);
@@ -987,7 +995,7 @@ draw_callback3(GtkWidget *widget,
 	sprintf(c, "%.2f", AD1);
 #endif
 #ifndef _LINUX_
-	sprintf_s(c, "%.2f", AD1);
+	sprintf(c, "%.2f", AD1);
 #endif
 	cairo_show_text(cr, c);
 	cairo_move_to(cr, width / 4 * 2 - 170, height - 30);
@@ -995,7 +1003,7 @@ draw_callback3(GtkWidget *widget,
 	sprintf(c, "%.2f", P1);
 #endif
 #ifndef _LINUX_
-	sprintf_s(c, "%.2f", P1);
+	sprintf(c, "%.2f", P1);
 #endif
 	cairo_show_text(cr, c);
 	cairo_move_to(cr, width / 4 * 3 - 150, height - 30);
@@ -1006,7 +1014,7 @@ draw_callback3(GtkWidget *widget,
 	sprintf(c, "%.2f", P2);
 #endif
 #ifndef _LINUX_
-	sprintf_s(c, "%.2f", P2);
+	sprintf(c, "%.2f", P2);
 #endif
 	cairo_show_text(cr, c);
 	cairo_stroke(cr);
@@ -1018,7 +1026,7 @@ draw_callback3(GtkWidget *widget,
 	layout = pango_cairo_create_layout(cr);
 	pango_cairo_show_layout(cr, layout);
 	cairo_move_to(cr, 0 + 5, height - 75);
-	pango_layout_set_text(layout, "试验力(kN)", -1);
+	pango_layout_set_text(layout, "试验力(N)", -1);
 	pango_cairo_show_layout(cr, layout);
 	cairo_move_to(cr, width / 4 + 5, height - 75);
 	pango_layout_set_text(layout, "变形(mm)", -1);
@@ -1033,7 +1041,7 @@ draw_callback3(GtkWidget *widget,
 #endif
 #ifndef _LINUX_
 	cairo_move_to(cr, 0 + 5, height - 75);
-	cairo_show_text(cr, _("试验力(kN)"));
+	cairo_show_text(cr, _("试验力(N)"));
 	cairo_move_to(cr, width / 4 + 5, height - 75);
 	cairo_show_text(cr, _("变形(mm)"));
 	cairo_move_to(cr, width / 2 + 5, height - 75);
@@ -1067,7 +1075,7 @@ gboolean time_handler3(GtkWidget *widget)
 	{
 		time_second = time_second + 0.1;
 	}
-	//time_second=time_second+0.1;	
+	//time_second=time_second+0.1;
 	return TRUE;
 }
 
@@ -1237,6 +1245,10 @@ void on_ip_menu_activate(GtkMenuItem* item, gpointer data)
 
 void socket_msg_handle(gint fd, socket_msg *msg, void *args)
 {
+	gdouble Ls = 0.0000;
+	gdouble b = 0.0000;
+	gdouble h = 0.0000;
+	gdouble bufferIn[8];
 	P1 = ((gdouble)((msg->data[1] & 0x7f) << 16 | msg->data[2] << 8 | msg->data[3]) / (gdouble)0x7fffff) * 600;
 	//P1 = ((gdouble)(msg->data[0] << 24 | msg->data[1] << 16 | msg->data[2] << 8 | msg->data[3]) / (gdouble)0xffffffff) * 16777215 / 250;
 	P2 = ((gdouble)(msg->data[4] << 24 | msg->data[5] << 16 | msg->data[6] << 8 | msg->data[7]) / (gdouble)0xffffffff) * 16777215 / 250;
@@ -1255,6 +1267,15 @@ void socket_msg_handle(gint fd, socket_msg *msg, void *args)
 	datas[data_num][6] = AD4;
 	datas[data_num][7] = DI;
 	data_num++;
+	bufferIn[0] = P1;
+	bufferIn[1] = P2;
+	bufferIn[2] = P3;
+	bufferIn[3] = AD1;
+	bufferIn[4] = AD2;
+	bufferIn[5] = AD3;
+	bufferIn[6] = AD4;
+	bufferIn[7] = DI;
+	//send_to_mysql(bufferIn); /* Record in the database */
 #ifdef wei
 	AD1 = ((gdouble)((msg->data[13] & 0x7f) << 16 | msg->data[14] << 8 | msg->data[15]) / (gdouble)0x7fffff) * 2.5;
 	AD2 = ((gdouble)((msg->data[17] & 0x7f) << 16 | msg->data[18] << 8 | msg->data[19]) / (gdouble)0x7fffff) * 2.5;
@@ -1264,16 +1285,31 @@ void socket_msg_handle(gint fd, socket_msg *msg, void *args)
 	{
 		printf("can not open file.!\n");
 	}
-	fprintf(fp, "%0.6lf,%0.6lf,%0.6lf,%0.6lf\r",AD1,AD2,AD3,AD4);
+	fprintf(fp, "%0.6lf,%0.6lf,%0.6lf,%0.6lf\r", AD1, AD2, AD3, AD4);
 	fclose(fp);
 #endif
-	//g_print("data after parse:  %0.4lf,  %0.4lf\n", P1, AD1);
+	b = atof(gtk_entry_get_text(entries.outer));
+	Ls = atof(gtk_entry_get_text(entries.span));
+	h = atof(gtk_entry_get_text(entries.thick));
+	if (Fbb_data<AD1)
+	{
+		Fbb_data = AD1;
+		Rbb_data = 3 * Fbb_data*Ls / (2 * b*h*h);
+	}
+	if (((mE_k_data == 0) && AD1 / P1>mE_k_data))
+	{
+		mE_k_data = AD1 / P1;
+	}
+	else if ((mE_k_data != 0) && mE_k_data_ok == FALSE && (AD1 / P1)<(mE_k_data*0.95))
+	{
+		mE_k_data_ok = TRUE;
+		mE_data = mE_k_data*Ls*Ls*Ls / (4 * b*h*h*h);
+	}
 }
 
 /* A new thread,to receive message */
 gpointer recv_func(gpointer arg)
 {
-	gint i = 0;
 	gint n = 0;
 
 	gint len = 45;
@@ -1290,7 +1326,7 @@ gpointer recv_func(gpointer arg)
 		n = socket_msg_cpy_in(cache, bufferIn, len);
 		//g_print("%x",bufferIn);
 		if (n == 0) {
-			return FALSE;//cache is full	
+			return FALSE;//cache is full
 		}
 		//parse and handle socket message from cache
 		socket_msg_parse(1, cache);
@@ -1429,7 +1465,7 @@ void on_report_button_clicked(GtkButton *button, gpointer user_data)
 	gdouble i = 0, x = 0, y = 0, Blank = 25, next = 25;
 	gdouble big_sp, small_sp, width, height, tr_down, tr_right;
 	gint j = 0, x_o;
-	gchar c[4];
+	gchar c[8];
 	gint recv[8];
 
 	report_surface = cairo_pdf_surface_create("HelloWorld.pdf", 595.28, 765.35);
@@ -1465,7 +1501,7 @@ void on_report_button_clicked(GtkButton *button, gpointer user_data)
 	//		else biggest = recv[1];
 	//	}
 	//}
-	//else 
+	//else
 	biggest = 50;
 	if (biggest >= top_y) /*Adjust the space of axis */
 	{
@@ -1590,23 +1626,20 @@ void on_report_button_clicked(GtkButton *button, gpointer user_data)
 /* Create report window */
 GtkWidget *create_report_window()
 {
+	gchar c[16];
+	gchar d[16];
+	gchar e[16];
 	GtkWidget *report_window;
 	GtkWidget *fixed;
 	GtkWidget *report_button;
 	GtkWidget *batch1, *num1, *time1, *temp1, *name1, *shape1, *outer1, *thick1, *span1, *Fbb, *sigma, *Eb;
-	GtkWidget *batch_label, *num_label, *time_label, *temp_label, *name_label, *shape_label, *outer_label, *thick_label, *span_label, *Fbb_label, *sigma_label, *Eb_label, *mult_label;
-	GtkWidget *calendar;
-	GtkWidget *combo;
-	GtkWidget *box;
-	GtkWidget *box1;
+	GtkWidget *batch_label, *num_label, *time_label, *temp_label, *name_label, *shape_label, *outer_label, *thick_label, *span_label, *Fbb_label, *sigma_label, *Eb_label;
 	gint x, y, z;
 
 	report_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_position(GTK_WINDOW(report_window), GTK_WIN_POS_CENTER);
 	fixed = gtk_fixed_new();
 	report_button = gtk_button_new_with_label(_("创建报表"));
-	calendar = gtk_calendar_new();
-	box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
 
 	batch1 = gtk_label_new(gtk_entry_get_text(entries.batch));
 	batch_label = gtk_label_new(_("试验批号:"));
@@ -1618,7 +1651,7 @@ GtkWidget *create_report_window()
 	temp_label = gtk_label_new(_("温度(℃):"));
 	name1 = gtk_label_new(gtk_entry_get_text(entries.name));
 	name_label = gtk_label_new(_("试验人:"));
-	shape1 = gtk_label_new(gtk_entry_get_text(entries.combo));
+	shape1 = gtk_label_new(gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(entries.combo)));
 	shape_label = gtk_label_new(_("试样形状:"));
 	outer1 = gtk_label_new(gtk_entry_get_text(entries.outer));
 	outer_label = gtk_label_new(_("试样宽度(mm):"));
@@ -1626,11 +1659,29 @@ GtkWidget *create_report_window()
 	thick_label = gtk_label_new(_("试样厚度(mm):"));
 	span1 = gtk_label_new(gtk_entry_get_text(entries.span));
 	span_label = gtk_label_new(_("跨距(mm):"));
-	Fbb = gtk_entry_new();
-	Fbb_label = gtk_label_new(_("Fbb(kN):"));
-	sigma = gtk_entry_new();
+#ifdef _LINUX_
+	sprintf(c, "%.4f", Fbb_data);
+#endif
+#ifndef _LINUX_
+	sprintf(c, "%.4f", Fbb_data);
+#endif
+	Fbb = gtk_label_new((const gchar *)c);
+	Fbb_label = gtk_label_new(_("Fbb(N):"));
+#ifdef _LINUX_
+	sprintf(d, "%.4f", Rbb_data);
+#endif
+#ifndef _LINUX_
+	sprintf(d, "%.4f", Rbb_data);
+#endif
+	sigma = gtk_label_new((const gchar *)d);
 	sigma_label = gtk_label_new(_("Rbb(MPa):"));
-	Eb = gtk_entry_new();
+#ifdef _LINUX_
+	sprintf(e, "%.4f", mE_data);
+#endif
+#ifndef _LINUX_
+	sprintf(e, "%.4f", mE_data);
+#endif
+	Eb = gtk_label_new((const gchar *)e);
 	Eb_label = gtk_label_new(_("mE(MPa):"));
 
 	gtk_window_set_title(GTK_WINDOW(report_window), "Window For Report");
@@ -1638,7 +1689,7 @@ GtkWidget *create_report_window()
 
 	gtk_widget_set_size_request(report_button, 100, 20);
 
-	x = 120;
+	x = 150;
 	y = 30;
 	z = 40;
 	gtk_fixed_put(GTK_FIXED(fixed), batch_label, 20, y);
@@ -1657,7 +1708,7 @@ GtkWidget *create_report_window()
 	gtk_fixed_put(GTK_FIXED(fixed), name1, x, y);
 	y = y + z;
 	gtk_fixed_put(GTK_FIXED(fixed), shape_label, 20, y);
-	gtk_fixed_put(GTK_FIXED(fixed), shape1, 100, y);
+	gtk_fixed_put(GTK_FIXED(fixed), shape1, x, y);
 	y = y + z;
 	gtk_fixed_put(GTK_FIXED(fixed), outer_label, 20, y);
 	gtk_fixed_put(GTK_FIXED(fixed), outer1, x, y);
@@ -1729,7 +1780,7 @@ gint main(gint argc, char *argv[])
 {
 	gint i = 0;
 	GtkWidget *window;
-	GtkWidget *label1, *label2, *label3, *label4, *label5, *label6, *label7, *label8, *label9, *label10, *label11, *label12;
+	GtkWidget *label9, *label10, *label11, *label12;
 	GtkWidget *conn_button, *close_button, *send_button, *pre_report_button;
 	GtkWidget *rece_view;
 	GtkWidget *da;
@@ -1738,7 +1789,6 @@ gint main(gint argc, char *argv[])
 	GtkWidget *menu1, *menu2, *menu3, *menu4, *menu5, *menu6, *menu7;
 	GtkWidget *setmenu, *adjustmenu, *toolmenu, *winmenu, *helpmenu, *ipmenu, *exitmenu;
 	GtkWidget *s_force_sensor, *s_extensometer, *sys_para, *analy_para, *force_verfic, *extensometer_verfic, *dis_verific, *compress_db, *i_o_db, *lock, *Float, *auto_arrange, *array_win, *move_up_left, *about, *reg;
-	GtkAccelGroup *accel_group;
 #ifdef _LINUX_
 	GtkWidget *box;
 #endif
@@ -1781,25 +1831,11 @@ gint main(gint argc, char *argv[])
 	box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
 #endif
 
-
-	label1 = gtk_label_new("IP:");
-	label2 = gtk_label_new("Port:");
-	label3 = gtk_label_new("DA1:");
-	label4 = gtk_label_new("DA2:");
-	label5 = gtk_label_new("D0:");
-	label6 = gtk_label_new("PWM:");
-	label7 = gtk_label_new("Duty Cycle:");
-	label8 = gtk_label_new("PWM-DIR:");
 	label9 = gtk_label_new("Messages:");
 	label10 = gtk_label_new(_("试验力-挠度曲线"));
-	label11 = gtk_label_new(_("试验力(kN)"));
+	label11 = gtk_label_new(_("试验力(N)"));
 	gtk_label_set_angle((GtkLabel *)label11, 90);
-	//gtk_widget_set_size_request(label11,1,10);/*设置标号尺寸*/
-	//gtk_label_set_justify(GTK_LABEL(label11), GTK_JUSTIFY_CENTER);/*设置标号对齐方式为居中对齐*/
-	//gtk_label_set_line_wrap(GTK_LABEL(label11), TRUE);/*打开自动换行*/
 	label12 = gtk_label_new(_("挠度(mm)"));
-	//entries.IP = (GtkEntry*)gtk_entry_new();
-	//entries.Port = (GtkEntry*)gtk_entry_new();
 	entries1.DA1 = (GtkEntry*)gtk_entry_new();
 	entries1.DA2 = (GtkEntry*)gtk_entry_new();
 	entries1.D0 = (GtkEntry*)gtk_entry_new();
@@ -1810,7 +1846,6 @@ gint main(gint argc, char *argv[])
 	da = gtk_drawing_area_new();
 	sector = gtk_drawing_area_new();
 	num = gtk_drawing_area_new();
-	accel_group = gtk_accel_group_new();
 
 	//gtk_entry_set_text(GTK_ENTRY(entries.IP), "111.186.100.57");
 	//gtk_entry_set_text(GTK_ENTRY(entries.Port), "8888");
