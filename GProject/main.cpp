@@ -2,7 +2,7 @@
 *  File name:      Fatigue_Tester.c
 *  Author:         Mxin Chiang
 *  Version:        1.0
-*  Date:           01.09.2016
+*  Date:           02.16.2016
 *  Description:    Design a software accepts data sent from fatigue testing machine,
 *                  waveform presentation, recording in MySQL database,
 *                  data processing and generate pdf reports.
@@ -78,8 +78,8 @@ GtkWidget *ip_menu_window = NULL;
 
 gint last_point[8];
 gint biggest = 0;
-gint top_x = 8;
-gint top_y = 100;
+gint top_x;
+gint top_y;
 gdouble arc_i = 0.0;
 
 gdouble recv_temp[8] = { 0 };
@@ -138,6 +138,20 @@ gdouble mE_k_data = 0.0000;
 gdouble mE_data = 0.0000;
 gdouble Rbb_data = 0.0000;
 gboolean mE_k_data_ok = FALSE;
+
+gdouble _fXBegin=0.0; //当前显示波形的X轴起始坐标值
+gdouble _fXEnd=10.0; //当前显示波形的X轴结束坐标值
+gdouble _fYBegin=0.0; //当前显示波形的Y轴起始坐标值
+gdouble _fYEnd=100.0; //当前显示波形的Y轴结束坐标值
+gdouble _fXBeginGO; //当前显示波形的X轴坐标标定起始值
+gdouble _fXEndGO; //当前显示波形的X轴坐标标定结束值
+gdouble _fYBeginGO; //当前显示波形的Y轴坐标标定起始值
+gdouble _fYEndGO; //当前显示波形的Y轴坐标标定结束值
+
+gdouble _fXQuanBeginGO; //当前显示波形的X轴坐标标定起始权值
+gdouble _fXQuanEndGO; //当前显示波形的X轴坐标标定结束权值
+gdouble _fYQuanBeginGO; //当前显示波形的Y轴坐标标定起始权值
+gdouble _fYQuanEndGO; //当前显示波形的Y轴坐标标定结束权值
 
 gchar *_(gchar *c)
 {
@@ -362,12 +376,12 @@ void socket_msg_parse(gint fd, socket_cache *cache)
 		}
 		else {
 			g_print("socket message without end: %x!\n", SOCKET_MSG_END);
-			//delete the frist item 'a5'
-			//move back 5 items
-			cache->current = cache->current >= 5 ? (cache->current - 5) : (SOCKET_MSG_CACHE_SIZE - 5 + cache->current);
+			//delete the frist item '55'
+			//move back 7 items
+			cache->current = cache->current >= 7 ? (cache->current - 7) : (SOCKET_MSG_CACHE_SIZE - 7 + cache->current);
 			cache->front = cache->current;
-			//length sub 5
-			cache->len -= 5;
+			//length sub 7
+			cache->len -= 7;
 			cache->tag = 0;
 
 		}
@@ -496,149 +510,373 @@ gint *Filter(gchar recv_data[])
 *    Description:  Database Operations
 ***************************************************************************************/
 
-gint init_db()
+//gint init_db()
+//{
+//	gint err = 0;
+//	MYSQL mysql;
+//
+//	if (!mysql_init(&mysql))
+//	{
+//		g_print("mysql_init:");
+//		exit(1);
+//	}
+//
+//	if (!mysql_real_connect(&mysql, SERVER_HOST, SERVER_USER, SERVER_PWD, NULL, 0, NULL, 0))
+//	{
+//		g_print("mysql_real_connect");
+//		exit(1);
+//	}
+//
+//	err = check_db(&mysql, DB_NAME);/* Check database */
+//	if (err != 0)
+//	{
+//		g_print("create db is err!\n");
+//		mysql_close(&mysql);
+//		exit(1);
+//	}
+//
+//	if (mysql_select_db(&mysql, DB_NAME)) /* Select which db */
+//	{
+//		g_print("mysql_select_db:");
+//		mysql_close(&mysql);
+//		exit(1);
+//	}
+//	if ((err = check_tbl(&mysql, TABLE_NAME)) != 0)/* Check table */
+//	{
+//		g_print("check_tbl is err!\n");
+//		mysql_close(&mysql);
+//		exit(1);
+//	}
+//	mysql_close(&mysql);
+//	return 0;
+//}
+//
+//gint check_db(MYSQL *mysql, gchar *db_name)
+//{
+//	MYSQL_ROW row = NULL;
+//	MYSQL_RES *res = NULL;
+//
+//	res = mysql_list_dbs(mysql, NULL);
+//	if (res)
+//	{
+//		while ((row = mysql_fetch_row(res)) != NULL)
+//		{
+//			g_print("db is %s\n", row[0]);
+//			if (strcmp(row[0], db_name) == 0)
+//			{
+//				g_print("find db %s\n", db_name);
+//				break;
+//			}
+//		}
+//		mysql_free_result(res);
+//	}
+//	if (!row) /* Build database if no this database */
+//	{
+//		char buf[128] = { 0 };
+//		strcpy(buf, "CREATE DATABASE ");
+//		strcat(buf, db_name);
+//		if (mysql_query(mysql, buf))
+//		{
+//			g_print("Query failed (%s)\n", mysql_error(mysql));
+//			exit(1);
+//		}
+//	}
+//	return 0;
+//}
+//
+//gint check_tbl(MYSQL* mysql, gchar *name)
+//{
+//	if (name == NULL)
+//		return 0;
+//	MYSQL_ROW row = NULL;
+//	MYSQL_RES *res = NULL;
+//	res = mysql_list_tables(mysql, NULL);
+//	if (res)
+//	{
+//		while ((row = mysql_fetch_row(res)) != NULL)
+//		{
+//			g_print("tables is %s\n", row[0]);
+//			if (strcmp(row[0], name) == 0)
+//			{
+//				g_print("find the table !\n");
+//				break;
+//			}
+//		}
+//		mysql_free_result(res);
+//	}
+//	if (!row) /* Create table if no this table */
+//	{
+//		char buf[1024] = { 0 };
+//		char qbuf[1024] = { 0 };
+//		snprintf(buf, sizeof(buf), "%s (SN INT(10) AUTO_INCREMENT NOT NULL,pulse1 DOUBLE(16,4),pulse2 DOUBLE(16,4),pulse3 DOUBLE(16,4),AD1 DOUBLE(16,4),AD2 DOUBLE(16,4),AD3 DOUBLE(16,4),AD4 DOUBLE(16,4),DI DOUBLE(16,4),PRIMARY KEY (SN));", TABLE_NAME);
+//		//snprintf(buf,sizeof(buf),"%s (SN INT(10) AUTO_INCREMENT NOT NULL,pulse1 INT(10),pulse2 INT(10),pulse3 INT(10),AD1 INT(10),AD2 INT(10),AD3 INT(10),AD4 INT(10),DI INT(10),PRIMARY KEY (SN));",TABLE_NAME);
+//		//		        strcpy(qbuf,"CREATE TABLE ");
+//		strcpy(qbuf, "CREATE TABLE ");
+//		strcat(qbuf, buf);
+//		if (mysql_query(mysql, qbuf))
+//		{
+//			g_print("Query failed (%s)\n", mysql_error(mysql));
+//			exit(1);
+//		}
+//	}
+//	return 0;
+//}
+//
+//void send_to_mysql(gdouble rcvd_mess[])
+//{
+//	gchar sql_insert[200];
+//	MYSQL my_connection;
+//	gint res;
+//
+//	mysql_init(&my_connection);
+//	if (mysql_real_connect(&my_connection, SERVER_HOST, SERVER_USER, SERVER_PWD, DB_NAME, 0, NULL, 0))
+//	{
+//		sprintf(sql_insert, "INSERT INTO mytables(pulse1,pulse2,pulse3,AD1,AD2,AD3,AD4,DI) VALUES('%.6lf','%.6lf','%.6lf','%.6lf','%.6lf','%.6lf','%.6lf','%.6lf')", rcvd_mess[0], rcvd_mess[1], rcvd_mess[2], rcvd_mess[3], rcvd_mess[4], rcvd_mess[5], rcvd_mess[6], rcvd_mess[7]);
+//		res = mysql_query(&my_connection, sql_insert);
+//
+//		if (!res)
+//		{
+//			//g_print("Inserted %lu rows\n", (unsigned long)mysql_affected_rows(&my_connection));
+//		}
+//		else
+//		{
+//			fprintf(stderr, "Insert error %d: %s\n", mysql_errno(&my_connection),
+//				mysql_error(&my_connection));
+//		}
+//		mysql_close(&my_connection);
+//	}
+//	else
+//	{
+//		if (mysql_errno(&my_connection))
+//		{
+//			fprintf(stderr, "Connection error %d: %s\n",
+//				mysql_errno(&my_connection), mysql_error(&my_connection));
+//		}
+//	}
+//}
+
+/***************************************************************************************
+*    Function:
+*    Description: Waveform presentation scale adjustment
+***************************************************************************************/
+gdouble _getQuan(gdouble m)
 {
-	gint err = 0;
-	MYSQL mysql;
-
-	if (!mysql_init(&mysql))
+	gdouble quan = 1.0f;        //临时，权值
+	m = (m < 0) ? -m : m;   //取绝对值
+	if (m == 0)
 	{
-		g_print("mysql_init:");
-		exit(1);
+		return 1.0f;          //默认0的权值为1
 	}
-
-	if (!mysql_real_connect(&mysql, SERVER_HOST, SERVER_USER, SERVER_PWD, NULL, 0, NULL, 0))
+	else if (m < 1)
 	{
-		g_print("mysql_real_connect");
-		exit(1);
-	}
-
-	err = check_db(&mysql, DB_NAME);/* Check database */
-	if (err != 0)
-	{
-		g_print("create db is err!\n");
-		mysql_close(&mysql);
-		exit(1);
-	}
-
-	if (mysql_select_db(&mysql, DB_NAME)) /* Select which db */
-	{
-		g_print("mysql_select_db:");
-		mysql_close(&mysql);
-		exit(1);
-	}
-	if ((err = check_tbl(&mysql, TABLE_NAME)) != 0)/* Check table */
-	{
-		g_print("check_tbl is err!\n");
-		mysql_close(&mysql);
-		exit(1);
-	}
-	mysql_close(&mysql);
-	return 0;
-}
-
-gint check_db(MYSQL *mysql, gchar *db_name)
-{
-	MYSQL_ROW row = NULL;
-	MYSQL_RES *res = NULL;
-
-	res = mysql_list_dbs(mysql, NULL);
-	if (res)
-	{
-		while ((row = mysql_fetch_row(res)) != NULL)
-		{
-			g_print("db is %s\n", row[0]);
-			if (strcmp(row[0], db_name) == 0)
-			{
-				g_print("find db %s\n", db_name);
-				break;
-			}
-		}
-		mysql_free_result(res);
-	}
-	if (!row) /* Build database if no this database */
-	{
-		char buf[128] = { 0 };
-		strcpy(buf, "CREATE DATABASE ");
-		strcat(buf, db_name);
-		if (mysql_query(mysql, buf))
-		{
-			g_print("Query failed (%s)\n", mysql_error(mysql));
-			exit(1);
-		}
-	}
-	return 0;
-}
-
-gint check_tbl(MYSQL* mysql, gchar *name)
-{
-	if (name == NULL)
-		return 0;
-	MYSQL_ROW row = NULL;
-	MYSQL_RES *res = NULL;
-	res = mysql_list_tables(mysql, NULL);
-	if (res)
-	{
-		while ((row = mysql_fetch_row(res)) != NULL)
-		{
-			g_print("tables is %s\n", row[0]);
-			if (strcmp(row[0], name) == 0)
-			{
-				g_print("find the table !\n");
-				break;
-			}
-		}
-		mysql_free_result(res);
-	}
-	if (!row) /* Create table if no this table */
-	{
-		char buf[1024] = { 0 };
-		char qbuf[1024] = { 0 };
-		snprintf(buf, sizeof(buf), "%s (SN INT(10) AUTO_INCREMENT NOT NULL,pulse1 DOUBLE(16,4),pulse2 DOUBLE(16,4),pulse3 DOUBLE(16,4),AD1 DOUBLE(16,4),AD2 DOUBLE(16,4),AD3 DOUBLE(16,4),AD4 DOUBLE(16,4),DI DOUBLE(16,4),PRIMARY KEY (SN));", TABLE_NAME);
-		//snprintf(buf,sizeof(buf),"%s (SN INT(10) AUTO_INCREMENT NOT NULL,pulse1 INT(10),pulse2 INT(10),pulse3 INT(10),AD1 INT(10),AD2 INT(10),AD3 INT(10),AD4 INT(10),DI INT(10),PRIMARY KEY (SN));",TABLE_NAME);
-		//		        strcpy(qbuf,"CREATE TABLE ");
-		strcpy(qbuf, "CREATE TABLE ");
-		strcat(qbuf, buf);
-		if (mysql_query(mysql, qbuf))
-		{
-			g_print("Query failed (%s)\n", mysql_error(mysql));
-			exit(1);
-		}
-	}
-	return 0;
-}
-
-void send_to_mysql(gdouble rcvd_mess[])
-{
-	gchar sql_insert[200];
-	MYSQL my_connection;
-	gint res;
-
-	mysql_init(&my_connection);
-	if (mysql_real_connect(&my_connection, SERVER_HOST, SERVER_USER, SERVER_PWD, DB_NAME, 0, NULL, 0))
-	{
-		sprintf(sql_insert, "INSERT INTO mytables(pulse1,pulse2,pulse3,AD1,AD2,AD3,AD4,DI) VALUES('%.6lf','%.6lf','%.6lf','%.6lf','%.6lf','%.6lf','%.6lf','%.6lf')", rcvd_mess[0], rcvd_mess[1], rcvd_mess[2], rcvd_mess[3], rcvd_mess[4], rcvd_mess[5], rcvd_mess[6], rcvd_mess[7]);
-		res = mysql_query(&my_connection, sql_insert);
-
-		if (!res)
-		{
-			//g_print("Inserted %lu rows\n", (unsigned long)mysql_affected_rows(&my_connection));
-		}
-		else
-		{
-			fprintf(stderr, "Insert error %d: %s\n", mysql_errno(&my_connection),
-				mysql_error(&my_connection));
-		}
-		mysql_close(&my_connection);
+		do { quan /= 10.0f; } while ((m = m * 10.0f) < 1);
+		return quan;
 	}
 	else
 	{
-		if (mysql_errno(&my_connection))
+		while ((m /= 10.0f) >= 1) { quan *= 10.0f; }
+		return quan;
+	}
+}
+
+void _changXBegionOrEndGO(gdouble m, gboolean isL)
+{
+	gdouble quan = _getQuan(m);   //获得该溢出数的权值
+	if (isL)
+	{
+		//如果值是从左边溢出
+			if (quan < _fXQuanEndGO)
+			{
+				_fXQuanBeginGO = _fXQuanEndGO / 10.0f;
+			}
+			else if (quan > _fXQuanEndGO)
+			{
+				_fXQuanBeginGO = quan;
+				_fXQuanEndGO = _fXQuanBeginGO / 10.0f;
+			}
+			else
+			{
+				_fXQuanBeginGO = _fXQuanEndGO;
+			}
+			if (m <= _fXQuanBeginGO && m >= -_fXQuanBeginGO)
+			{
+				_fXBeginGO = -_fXQuanBeginGO;
+			}
+			else
+			{
+				_fXBeginGO = ((int)(m / _fXQuanBeginGO) - 1) * _fXQuanBeginGO;
+			}
+	}
+	else
+	{
+		//如果值是从右边溢出
+			if (quan < _fXQuanBeginGO)
+			{
+				_fXQuanEndGO = _fXQuanBeginGO / 10.0f;
+			}
+			else if (quan > _fXQuanBeginGO)
+			{
+				_fXQuanEndGO = quan;
+				_fXQuanBeginGO = _fXQuanEndGO / 10.0f;
+			}
+			else
+			{
+				_fXQuanEndGO = _fXQuanBeginGO;
+			}
+			if (m <= _fXQuanEndGO && m >= _fXQuanBeginGO)
+			{
+				_fXEndGO = _fXQuanEndGO;
+			}
+			else
+			{
+				_fXEndGO = ((int)(m / _fXQuanEndGO) + 1.0) * _fXQuanEndGO;
+			}
+	}
+	g_print("X: %f,%f,%f\n", _fXEnd, _fXEndGO, _fXQuanEndGO);
+}
+
+void _changYBegionOrEndGO(gdouble m, gboolean isL)
+{
+	gdouble quan = _getQuan(m);   //获得该溢出数的权值
+	if (isL)
+	{
+		//如果值是从左边溢出
+			if (quan < _fYQuanEndGO)
+			{
+				_fYQuanBeginGO = _fYQuanEndGO / 10.0f;
+			}
+			else if (quan > _fYQuanEndGO)
+			{
+				_fYQuanBeginGO = quan;
+				_fYQuanEndGO = _fYQuanBeginGO / 10.0f;
+			}
+			else
+			{
+				_fYQuanBeginGO = _fYQuanEndGO;
+			}
+				if (m <= _fYQuanBeginGO && m >= -_fYQuanBeginGO)
+				{
+					_fYBeginGO = -_fYQuanBeginGO;
+				}
+				else
+				{
+					_fYBeginGO = ((int)(m / _fYQuanBeginGO) - 1) * _fYQuanBeginGO;
+				}
+	}
+	else
+	{
+		//如果值是从右边溢出
+			if (quan < _fYQuanBeginGO)
+			{
+				_fYQuanEndGO = _fYQuanBeginGO / 10.0f;
+			}
+			else if (quan > _fYQuanBeginGO)
+			{
+				_fYQuanEndGO = quan;
+				_fYQuanBeginGO = _fYQuanEndGO / 10.0f;
+			}
+			else
+			{
+				_fYQuanEndGO = _fYQuanBeginGO;
+			}
+				if (m <= _fYQuanEndGO && m >= _fYQuanBeginGO)
+				{
+					_fYEndGO = _fYQuanEndGO;
+				}
+				else
+				{
+					_fYEndGO = ((int)(m / _fYQuanEndGO) + 1.0) * _fYQuanEndGO;
+				}
+	}
+	g_print("Y: %f,%f,%f\n", _fYEnd, _fYEndGO, _fYQuanEndGO);
+}
+
+gdouble RegulateY(gdouble dMin, gdouble dMax, gint iMaxAxisNum)
+{
+	if (iMaxAxisNum<1 || dMax<dMin)
+		return 1;
+
+	gdouble dDelta = dMax - dMin;
+	if (dDelta<1.0) //Modify this by your requirement.
+	{
+		dMax += (1.0 - dDelta) / 2.0;
+		dMin -= (1.0 - dDelta) / 2.0;
+	}
+	dDelta = dMax - dMin;
+
+	gint iExp = (gint)(log(dDelta) / log(10.0)) - 2;
+	gdouble dMultiplier = pow(10, iExp);
+	const gdouble dSolutions[] = { 1, 2, 2.5, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 1500, 2000, 2500, 5000};
+	gint i;
+	for (i = 0; i<sizeof(dSolutions) / sizeof(gdouble); i++)
+	{
+		gdouble dMultiCal = dMultiplier * dSolutions[i];
+		if (((gint)(dDelta / dMultiCal) + 1) <= iMaxAxisNum)
 		{
-			fprintf(stderr, "Connection error %d: %s\n",
-				mysql_errno(&my_connection), mysql_error(&my_connection));
+			break;
 		}
 	}
+
+	gdouble dInterval = dMultiplier * dSolutions[i];
+
+	gdouble dStartPoint = ((gint)ceil(dMin / dInterval) - 1) * dInterval;
+	gint iAxisIndex;
+	for (iAxisIndex = 0; 1; iAxisIndex++)
+	{
+		//g_print("%f", dStartPoint + dInterval*iAxisIndex);
+		if (dStartPoint + dInterval*iAxisIndex > dMax) 
+		{
+			top_y=dStartPoint + dInterval*iAxisIndex;
+			break;
+		}
+		//g_print(" | ");
+	}
+	//g_print("\n");
+	return dInterval;
+}
+
+gdouble RegulateX(gdouble dMin, gdouble dMax, gint iMaxAxisNum)
+{
+	if (iMaxAxisNum<1 || dMax<dMin)
+		return 0;
+
+	gdouble dDelta = dMax - dMin;
+	if (dDelta<1.0) //Modify this by your requirement.
+	{
+		dMax += (1.0 - dDelta) / 2.0;
+		dMin -= (1.0 - dDelta) / 2.0;
+	}
+	dDelta = dMax - dMin;
+
+	gint iExp = (gint)(log(dDelta) / log(10.0)) - 2;
+	gdouble dMultiplier = pow(10, iExp);
+	const gdouble dSolutions[] = { 1, 2, 2.5, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 1500, 2000, 2500, 5000 };
+	gint i;
+	for (i = 0; i<sizeof(dSolutions) / sizeof(gdouble); i++)
+	{
+		gdouble dMultiCal = dMultiplier * dSolutions[i];
+		if (((gint)(dDelta / dMultiCal) + 1) <= iMaxAxisNum)
+		{
+			break;
+		}
+	}
+
+	gdouble dInterval = dMultiplier * dSolutions[i];
+
+	gdouble dStartPoint = ((gint)ceil(dMin / dInterval) - 1) * dInterval;
+	gint iAxisIndex;
+	for (iAxisIndex = 0; 1; iAxisIndex++)
+	{
+		//g_print("%f", dStartPoint + dInterval*iAxisIndex);
+		if (dStartPoint + dInterval*iAxisIndex > dMax)
+		{
+			top_x = dStartPoint + dInterval*iAxisIndex;
+			break;
+		}
+		//g_print(" | ");
+	}
+	//g_print("\n");
+	return dInterval;
 }
 
 /***************************************************************************************
@@ -682,7 +920,7 @@ draw_callback(GtkWidget *widget,
 	gdouble i = 0, x = 0, y = 0;
 	gint j = 0;
 	gchar c[32];
-	gdouble big_y_sp = 0, small_y_sp = 0, big_x_sp = 0, small_x_sp = 0, width = 0, height = 0;
+	gdouble max_y = 0, max_x = 0, Interval_x = 0, Interval_y = 0, big_y_sp = 0, big_x_sp = 0, width = 0, height = 0;
 	gdouble Blank = 25;
 	for (j = 0; j<8; j++)
 	{
@@ -697,23 +935,21 @@ draw_callback(GtkWidget *widget,
 
 	for (j = 0; j < data_num; j++)
 	{
-		if (top_x < datas[j][0])
+		if (max_x < datas[j][0])
 		{
-			top_x = datas[j][0];
-			//top_x = (top_x / 10 + 1) * 10;
-			top_x = top_x + 1;
+			max_x = datas[j][0];
 		}
-		if (top_y < datas[j][3])
+		if (max_y < datas[j][3])
 		{
-			top_y = datas[j][3];
-			top_y = (top_y / 10 + 1) * 10;
+			max_y = datas[j][3];
 		}
 	}
 
-	big_y_sp = (height - 2 * Blank) / (top_y / 10);
-	big_x_sp = (width - 2 * Blank) / top_x;
-	small_y_sp = (height - 2 * Blank) / top_y;
-	small_x_sp = (width - 2 * Blank) / top_x / 10;
+	Interval_y = RegulateY(1, max_y, 10);
+	Interval_x = RegulateX(-0.00001, max_x, 8);
+
+	big_y_sp = (height - 2 * Blank) / (top_y / Interval_y);
+	big_x_sp = (width - 2 * Blank) / (top_x / Interval_x);
 
 	cairo_set_source_rgb(cr, 0, 0, 0);
 	cairo_set_line_width(cr, 0.5);
@@ -727,26 +963,26 @@ draw_callback(GtkWidget *widget,
 		cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 		cairo_set_font_size(cr, 12.0);
 		sprintf(c, "%.0lf", y);
-		y = y + 10;
+		y = y + Interval_y;
 		cairo_show_text(cr, c);
 	}
-	for (i = height - Blank; i>Blank; i = i - small_y_sp)
+	for (i = height - Blank; i>Blank; i = i - big_y_sp / 10)
 	{
 		cairo_move_to(cr, Blank - 3, i);
 		cairo_line_to(cr, Blank, i);
 	}
-	for (i = Blank; i <= (width - Blank) + 1; i = i + big_x_sp)/* Draw X-axis */
+	for (i = Blank; i <= (width - Blank); i = i + big_x_sp)/* Draw X-axis */
 	{
 		cairo_move_to(cr, i, Blank);
 		cairo_line_to(cr, i, height - Blank + 6);
 		cairo_move_to(cr, i - 10, height - Blank + 16);
 		cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 		cairo_set_font_size(cr, 12.0);
-		sprintf(c, "%.0lf", x);
-		x = x + 1;
+		sprintf(c, "%.2lf", x);
+		x = x + Interval_x;
 		cairo_show_text(cr, c);
 	}
-	for (i = Blank; i<(width - Blank); i = i + small_x_sp)
+	for (i = Blank; i<(width - Blank); i = i + big_x_sp / 10)
 	{
 		cairo_move_to(cr, i, height - Blank);
 		cairo_line_to(cr, i, height - Blank + 3);
@@ -1317,11 +1553,11 @@ gpointer recv_func(gpointer arg)
 	socket_cache_init(cache, socket_msg_handle);
 	while (1)
 	{
-		if (g_socket_receive(sock, (gchar *)bufferIn, 45000, NULL, &error)<0)
+		if (g_socket_receive(sock, (gchar *)bufferIn, 45, NULL, &error)<0)
 		{
 			perror("server recv error\n");
 			break;
-			exit(1);
+			//exit(1);
 		}
 		n = socket_msg_cpy_in(cache, bufferIn, len);
 		//g_print("%x",bufferIn);
