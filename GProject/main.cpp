@@ -2,7 +2,7 @@
 *  File name:      Fatigue_Tester.c
 *  Author:         Mxin Chiang
 *  Version:        1.0
-*  Date:           02.16.2016
+*  Date:           02.17.2016
 *  Description:    Design a software accepts data sent from fatigue testing machine,
 *                  waveform presentation, recording in MySQL database,
 *                  data processing and generate pdf reports.
@@ -78,8 +78,8 @@ GtkWidget *ip_menu_window = NULL;
 
 gint last_point[8];
 gint biggest = 0;
-gint top_x;
-gint top_y;
+gdouble top_x;
+gdouble top_y;
 gdouble arc_i = 0.0;
 
 gdouble recv_temp[8] = { 0 };
@@ -138,20 +138,6 @@ gdouble mE_k_data = 0.0000;
 gdouble mE_data = 0.0000;
 gdouble Rbb_data = 0.0000;
 gboolean mE_k_data_ok = FALSE;
-
-gdouble _fXBegin=0.0; //当前显示波形的X轴起始坐标值
-gdouble _fXEnd=10.0; //当前显示波形的X轴结束坐标值
-gdouble _fYBegin=0.0; //当前显示波形的Y轴起始坐标值
-gdouble _fYEnd=100.0; //当前显示波形的Y轴结束坐标值
-gdouble _fXBeginGO; //当前显示波形的X轴坐标标定起始值
-gdouble _fXEndGO; //当前显示波形的X轴坐标标定结束值
-gdouble _fYBeginGO; //当前显示波形的Y轴坐标标定起始值
-gdouble _fYEndGO; //当前显示波形的Y轴坐标标定结束值
-
-gdouble _fXQuanBeginGO; //当前显示波形的X轴坐标标定起始权值
-gdouble _fXQuanEndGO; //当前显示波形的X轴坐标标定结束权值
-gdouble _fYQuanBeginGO; //当前显示波形的Y轴坐标标定起始权值
-gdouble _fYQuanEndGO; //当前显示波形的Y轴坐标标定结束权值
 
 gchar *_(gchar *c)
 {
@@ -659,142 +645,10 @@ gint *Filter(gchar recv_data[])
 *    Function:
 *    Description: Waveform presentation scale adjustment
 ***************************************************************************************/
-gdouble _getQuan(gdouble m)
-{
-	gdouble quan = 1.0f;        //临时，权值
-	m = (m < 0) ? -m : m;   //取绝对值
-	if (m == 0)
-	{
-		return 1.0f;          //默认0的权值为1
-	}
-	else if (m < 1)
-	{
-		do { quan /= 10.0f; } while ((m = m * 10.0f) < 1);
-		return quan;
-	}
-	else
-	{
-		while ((m /= 10.0f) >= 1) { quan *= 10.0f; }
-		return quan;
-	}
-}
-
-void _changXBegionOrEndGO(gdouble m, gboolean isL)
-{
-	gdouble quan = _getQuan(m);   //获得该溢出数的权值
-	if (isL)
-	{
-		//如果值是从左边溢出
-			if (quan < _fXQuanEndGO)
-			{
-				_fXQuanBeginGO = _fXQuanEndGO / 10.0f;
-			}
-			else if (quan > _fXQuanEndGO)
-			{
-				_fXQuanBeginGO = quan;
-				_fXQuanEndGO = _fXQuanBeginGO / 10.0f;
-			}
-			else
-			{
-				_fXQuanBeginGO = _fXQuanEndGO;
-			}
-			if (m <= _fXQuanBeginGO && m >= -_fXQuanBeginGO)
-			{
-				_fXBeginGO = -_fXQuanBeginGO;
-			}
-			else
-			{
-				_fXBeginGO = ((int)(m / _fXQuanBeginGO) - 1) * _fXQuanBeginGO;
-			}
-	}
-	else
-	{
-		//如果值是从右边溢出
-			if (quan < _fXQuanBeginGO)
-			{
-				_fXQuanEndGO = _fXQuanBeginGO / 10.0f;
-			}
-			else if (quan > _fXQuanBeginGO)
-			{
-				_fXQuanEndGO = quan;
-				_fXQuanBeginGO = _fXQuanEndGO / 10.0f;
-			}
-			else
-			{
-				_fXQuanEndGO = _fXQuanBeginGO;
-			}
-			if (m <= _fXQuanEndGO && m >= _fXQuanBeginGO)
-			{
-				_fXEndGO = _fXQuanEndGO;
-			}
-			else
-			{
-				_fXEndGO = ((int)(m / _fXQuanEndGO) + 1.0) * _fXQuanEndGO;
-			}
-	}
-	g_print("X: %f,%f,%f\n", _fXEnd, _fXEndGO, _fXQuanEndGO);
-}
-
-void _changYBegionOrEndGO(gdouble m, gboolean isL)
-{
-	gdouble quan = _getQuan(m);   //获得该溢出数的权值
-	if (isL)
-	{
-		//如果值是从左边溢出
-			if (quan < _fYQuanEndGO)
-			{
-				_fYQuanBeginGO = _fYQuanEndGO / 10.0f;
-			}
-			else if (quan > _fYQuanEndGO)
-			{
-				_fYQuanBeginGO = quan;
-				_fYQuanEndGO = _fYQuanBeginGO / 10.0f;
-			}
-			else
-			{
-				_fYQuanBeginGO = _fYQuanEndGO;
-			}
-				if (m <= _fYQuanBeginGO && m >= -_fYQuanBeginGO)
-				{
-					_fYBeginGO = -_fYQuanBeginGO;
-				}
-				else
-				{
-					_fYBeginGO = ((int)(m / _fYQuanBeginGO) - 1) * _fYQuanBeginGO;
-				}
-	}
-	else
-	{
-		//如果值是从右边溢出
-			if (quan < _fYQuanBeginGO)
-			{
-				_fYQuanEndGO = _fYQuanBeginGO / 10.0f;
-			}
-			else if (quan > _fYQuanBeginGO)
-			{
-				_fYQuanEndGO = quan;
-				_fYQuanBeginGO = _fYQuanEndGO / 10.0f;
-			}
-			else
-			{
-				_fYQuanEndGO = _fYQuanBeginGO;
-			}
-				if (m <= _fYQuanEndGO && m >= _fYQuanBeginGO)
-				{
-					_fYEndGO = _fYQuanEndGO;
-				}
-				else
-				{
-					_fYEndGO = ((int)(m / _fYQuanEndGO) + 1.0) * _fYQuanEndGO;
-				}
-	}
-	g_print("Y: %f,%f,%f\n", _fYEnd, _fYEndGO, _fYQuanEndGO);
-}
-
 gdouble RegulateY(gdouble dMin, gdouble dMax, gint iMaxAxisNum)
 {
 	if (iMaxAxisNum<1 || dMax<dMin)
-		return 1;
+		return 0.00001;
 
 	gdouble dDelta = dMax - dMin;
 	if (dDelta<1.0) //Modify this by your requirement.
@@ -838,7 +692,7 @@ gdouble RegulateY(gdouble dMin, gdouble dMax, gint iMaxAxisNum)
 gdouble RegulateX(gdouble dMin, gdouble dMax, gint iMaxAxisNum)
 {
 	if (iMaxAxisNum<1 || dMax<dMin)
-		return 0;
+		return 0.00001;
 
 	gdouble dDelta = dMax - dMin;
 	if (dDelta<1.0) //Modify this by your requirement.
@@ -945,8 +799,8 @@ draw_callback(GtkWidget *widget,
 		}
 	}
 
-	Interval_y = RegulateY(1, max_y, 10);
-	Interval_x = RegulateX(-0.00001, max_x, 8);
+	Interval_y = RegulateY(0, max_y, 10);
+	Interval_x = RegulateX(0, max_x, 8);
 
 	big_y_sp = (height - 2 * Blank) / (top_y / Interval_y);
 	big_x_sp = (width - 2 * Blank) / (top_x / Interval_x);
