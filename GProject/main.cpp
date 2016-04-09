@@ -2,7 +2,7 @@
 *  File name:      Fatigue_Tester.c
 *  Author:         Mxin Chiang
 *  Version:        1.0
-*  Date:           02.17.2016
+*  Date:           04.09.2016
 *  Description:    Design a software accepts data sent from fatigue testing machine,
 *                  waveform presentation, recording in MySQL database,
 *                  data processing and generate pdf reports.
