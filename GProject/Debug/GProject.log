@@ -19,6 +19,9 @@ c:\users\jiang\desktop\gproject\gproject\main.cpp(871): warning C4244: “参数
 c:\users\jiang\desktop\gproject\gproject\main.cpp(1022): warning C4244: “参数”: 从“gdouble”转换到“gint”，可能丢失数据
 c:\users\jiang\desktop\gproject\gproject\main.cpp(1165): warning C4244: “参数”: 从“gdouble”转换到“gint”，可能丢失数据
 c:\users\jiang\desktop\gproject\gproject\main.cpp(1167): warning C4805: “==”: 在操作中将类型“gboolean”与类型“bool”混合不安全
+c:\users\jiang\desktop\gproject\gproject\main.cpp(1582): warning C4101: “k”: 未引用的局部变量
+c:\users\jiang\desktop\gproject\gproject\main.cpp(1575): warning C4101: “b”: 未引用的局部变量
+c:\users\jiang\desktop\gproject\gproject\main.cpp(1577): warning C4101: “d”: 未引用的局部变量
 c:\users\jiang\desktop\gproject\gproject\main.cpp(494): warning C4715: “Filter”: 不是所有的控件路径都返回值
 c:\users\jiang\desktop\gproject\gproject\main.cpp(482): warning C4172: 返回局部变量或临时变量的地址: data
 c:\users\jiang\desktop\gproject\gproject\main.cpp(492): warning C4172: 返回局部变量或临时变量的地址: data

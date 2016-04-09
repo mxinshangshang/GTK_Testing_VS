@@ -1570,6 +1570,19 @@ void on_report_button_clicked(GtkButton *button, gpointer user_data)
 	gdouble i = 0, x = 0, y = 0, Blank = 25, next = 25, t = 0;
 	gdouble width, height, tr_down, tr_right;
 
+	gint j = 0;
+	gchar a[120];
+	gchar b[32];
+	gchar c[32];
+	gchar d[32];
+	gchar e[32];
+	gchar f[32];
+	gchar g[32];
+	gchar h[32];
+	gchar k[32];
+
+	gdouble max_y = 0, max_x = 0, Interval_x = 0, Interval_y = 0, big_y_sp = 0, big_x_sp = 0;
+
 	report_surface = cairo_pdf_surface_create("201510101757.pdf", 595.28, 765.35);
 	cr = cairo_create(report_surface);
 	cairo_set_source_surface(cr, surface, 0, 0);
@@ -1579,139 +1592,6 @@ void on_report_button_clicked(GtkButton *button, gpointer user_data)
 	height = 300;
 	tr_down = 160;
 	tr_right = 100;
-
-	//cairo_set_source_rgb(cr, 0, 0, 0);
-	//cairo_set_line_width(cr, 0.5);
-	//cairo_rectangle(cr, Blank + tr_right, tr_down + Blank, width - 2 * Blank, height - 2 * Blank);/* Draw outer border */
-
-	gint j = 0;
-	gchar c[32];
-	gdouble max_y = 0, max_x = 0, Interval_x = 0, Interval_y = 0, big_y_sp = 0, big_x_sp = 0;
-	for (j = 0; j<8; j++)
-	{
-		recv_temp[j] = 0;
-	}
-
-	cairo_set_source_rgb(cr, 0, 0, 0);
-	cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-	cairo_set_font_size(cr, 30);
-	cairo_move_to(cr, 245, 50);
-	cairo_show_text(cr, _("试验报告"));
-	cairo_set_font_size(cr, 15);
-	cairo_move_to(cr, 20, 80);
-	cairo_show_text(cr, _("试验时间： 2015.10.10                         试验室温： 25 ℃"));
-	cairo_move_to(cr, 20, 80 + 20);
-	cairo_show_text(cr, _("试验员：   蒋明欣"));
-	cairo_move_to(cr, 20, 80 + 40);
-	cairo_show_text(cr, _("试验编号： 87654321"));
-	cairo_move_to(cr, 20, 80 + 60);
-	cairo_show_text(cr, _("试验批号： No.12345678"));
-	cairo_move_to(cr, 20, 80 + 80);
-	cairo_show_text(cr, _("试验力-挠度曲线图："));
-	cairo_move_to(cr, 270, 470);
-	cairo_show_text(cr, _("挠度(mm)"));
-	cairo_move_to(cr, 245, 500);
-	cairo_show_text(cr, _("实验结果记录表："));
-
-	cairo_move_to(cr, 73, 300);
-	cairo_show_text(cr, _("试"));
-	cairo_move_to(cr, 73, 315);
-	cairo_show_text(cr, _("验"));
-	cairo_move_to(cr, 73, 330);
-	cairo_show_text(cr, _("力"));
-	cairo_move_to(cr, 70, 345);
-	cairo_show_text(cr, _("(N)"));
-	cairo_stroke(cr);
-
-	cairo_set_source_rgb(cr, 0, 0, 0);
-	cairo_set_line_width(cr, 0.5);
-	cairo_move_to(cr, 20, 520);
-	cairo_line_to(cr, 570, 520);
-	cairo_move_to(cr, 20, 580);
-	cairo_line_to(cr, 570, 580);
-	cairo_move_to(cr, 20, 620);
-	cairo_line_to(cr, 570, 620);
-
-	cairo_set_source_rgb(cr, 0, 0, 0);
-	cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-	cairo_set_font_size(cr, 12);
-
-	cairo_move_to(cr, 20 + t, 520);
-	cairo_line_to(cr, 20 + t, 620);
-	cairo_move_to(cr, 30 + t, 520 + 35);
-	cairo_show_text(cr, _("材料"));
-	cairo_move_to(cr, 23 + t, 520 + 82);
-	cairo_show_text(cr, _("低碳钢"));
-	t = t + 15.7 * 3;
-	cairo_move_to(cr, 20 + t, 520);
-	cairo_line_to(cr, 20 + t, 620);
-	cairo_move_to(cr, 30 + t, 520 + 30);
-	cairo_show_text(cr, _("试件宽度"));
-	cairo_move_to(cr, 30 + t, 520 + 40);
-	cairo_show_text(cr, _("（b/mm）"));
-	cairo_move_to(cr, 23 + t, 520 + 82);
-	cairo_show_text(cr, _("180"));
-	t = t + 15.7 * 4;
-	cairo_move_to(cr, 20 + t, 520);
-	cairo_line_to(cr, 20 + t, 620);
-	cairo_move_to(cr, 30 + t, 520 + 30);
-	cairo_show_text(cr, _("试件厚度"));
-	cairo_move_to(cr, 30 + t, 520 + 40);
-	cairo_show_text(cr, _("（h/mm）"));
-	cairo_move_to(cr, 23 + t, 520 + 82);
-	cairo_show_text(cr, _("20"));
-	t = t + 15.7 * 4;
-	cairo_move_to(cr, 20 + t, 520);
-	cairo_line_to(cr, 20 + t, 620);
-	cairo_move_to(cr, 40 + t, 520 + 30);
-	cairo_show_text(cr, _("跨距"));
-	cairo_move_to(cr, 30 + t, 520 + 40);
-	cairo_show_text(cr, _("(Ls/mm)"));
-	cairo_move_to(cr, 23 + t, 520 + 82);
-	cairo_show_text(cr, _("160"));
-	t = t + 15.7 * 4;
-	cairo_move_to(cr, 20 + t, 520);
-	cairo_line_to(cr, 20 + t, 620);
-	cairo_move_to(cr, 30 + t, 520 + 30);
-	cairo_show_text(cr, _("最大弯曲力"));
-	cairo_move_to(cr, 30 + t, 520 + 40);
-	cairo_show_text(cr, _("（Fbb/kN）"));
-	cairo_move_to(cr, 23 + t, 520 + 82);
-	cairo_show_text(cr, _("208.5686"));
-	t = t + 15.7 * 5;
-	cairo_move_to(cr, 20 + t, 520);
-	cairo_line_to(cr, 20 + t, 620);
-	cairo_move_to(cr, 30 + t, 520 + 30);
-	cairo_show_text(cr, _("最大挠度"));
-	cairo_move_to(cr, 30 + t, 520 + 40);
-	cairo_show_text(cr, _("（f/mm）"));
-	cairo_move_to(cr, 23 + t, 520 + 82);
-	cairo_show_text(cr, _("9.22"));
-	t = t + 15.7 * 4;
-	cairo_move_to(cr, 20 + t, 520);
-	cairo_line_to(cr, 20 + t, 620);
-	cairo_move_to(cr, 36 + t, 520 + 25);
-	cairo_show_text(cr, _("弯曲弹性"));
-	cairo_move_to(cr, 36 + t, 520 + 35);
-	cairo_show_text(cr, _("直线斜率"));
-	cairo_move_to(cr, 30 + t, 520 + 45);
-	cairo_show_text(cr, _("（mE/Mpa）"));
-	cairo_move_to(cr, 23 + t, 520 + 82);
-	cairo_show_text(cr, _("0.6952"));
-	t = t + 15.7 * 5;
-	cairo_move_to(cr, 20 + t, 520);
-	cairo_line_to(cr, 20 + t, 620);
-	cairo_move_to(cr, 30 + t, 520 + 30);
-	cairo_show_text(cr, _("最大弯曲强度"));
-	cairo_move_to(cr, 30 + t, 520 + 40);
-	cairo_show_text(cr, _("（Rbb/MPa）"));
-	cairo_move_to(cr, 23 + t, 520 + 82);
-	cairo_show_text(cr, _("27.0899"));
-	t = t + 15.7 * 6;
-	cairo_move_to(cr, 20 + t, 520);
-	cairo_line_to(cr, 20 + t, 620);
-
-	cairo_stroke(cr);
 
 	for (j = 0; j < data_num; j++)
 	{
@@ -1781,6 +1661,214 @@ void on_report_button_clicked(GtkButton *button, gpointer user_data)
 		recv_temp[3] = height - Blank - datas[j][3] / top_y * (height - 2 * Blank);//y
 	}
 	cairo_stroke(cr);
+
+
+	for (j = 0; j<8; j++)
+	{
+		recv_temp[j] = 0;
+	}
+
+	cairo_set_source_rgb(cr, 0, 0, 0);
+	cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size(cr, 30);
+	cairo_move_to(cr, 245, 50);
+	cairo_show_text(cr, _("试验报告"));
+	cairo_set_font_size(cr, 15);
+	cairo_move_to(cr, 20, 80);
+	sprintf(a, "试验时间：  %s", gtk_entry_get_text(entries.time));
+	cairo_show_text(cr, _(a));
+	cairo_move_to(cr, 400, 80);
+	sprintf(a, "试验室温： %s ℃", gtk_entry_get_text(entries.temp));
+	cairo_show_text(cr, _(a));
+
+	cairo_move_to(cr, 20, 100);
+	sprintf(a, "试验员：  %s", gtk_entry_get_text(entries.name));
+	cairo_show_text(cr, _(a));
+	cairo_move_to(cr, 20, 80 + 40);
+	sprintf(a, "试验编号： %s", gtk_entry_get_text(entries.num));
+	cairo_show_text(cr, _(a));
+	cairo_move_to(cr, 20, 80 + 60);
+	sprintf(a, "试验批号： %s", gtk_entry_get_text(entries.batch));
+	cairo_show_text(cr, _(a));
+	cairo_move_to(cr, 20, 80 + 80);
+	cairo_show_text(cr, _("试验力-挠度曲线图："));
+	cairo_move_to(cr, 270, 470);
+	cairo_show_text(cr, _("挠度(mm)"));
+	cairo_move_to(cr, 245, 500);
+	cairo_show_text(cr, _("实验结果记录表："));
+
+	cairo_move_to(cr, 73, 300);
+	cairo_show_text(cr, _("试"));
+	cairo_move_to(cr, 73, 315);
+	cairo_show_text(cr, _("验"));
+	cairo_move_to(cr, 73, 330);
+	cairo_show_text(cr, _("力"));
+	cairo_move_to(cr, 70, 345);
+	cairo_show_text(cr, _("(N)"));
+	cairo_stroke(cr);
+
+	cairo_set_source_rgb(cr, 0, 0, 0);
+	cairo_set_line_width(cr, 0.5);
+	cairo_move_to(cr, 20, 520);
+	cairo_line_to(cr, 570, 520);
+	cairo_move_to(cr, 20, 580);
+	cairo_line_to(cr, 570, 580);
+	cairo_move_to(cr, 20, 620);
+	cairo_line_to(cr, 570, 620);
+
+	cairo_set_source_rgb(cr, 0, 0, 0);
+	cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size(cr, 12);
+
+	cairo_move_to(cr, 20 + t, 520);
+	cairo_line_to(cr, 20 + t, 620);
+	cairo_move_to(cr, 30 + t, 520 + 35);
+	cairo_show_text(cr, _("材料"));
+	cairo_move_to(cr, 23 + t, 520 + 82);
+	cairo_show_text(cr, gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(entries.combo)));
+	t = t + 15.7 * 3;
+	cairo_move_to(cr, 20 + t, 520);
+	cairo_line_to(cr, 20 + t, 620);
+	cairo_move_to(cr, 30 + t, 520 + 30);
+	cairo_show_text(cr, _("试件宽度"));
+	cairo_move_to(cr, 30 + t, 520 + 40);
+	cairo_show_text(cr, _("（b/mm）"));
+	cairo_move_to(cr, 23 + t, 520 + 82);
+	cairo_show_text(cr, gtk_entry_get_text(entries.outer));
+	t = t + 15.7 * 4;
+	cairo_move_to(cr, 20 + t, 520);
+	cairo_line_to(cr, 20 + t, 620);
+	cairo_move_to(cr, 30 + t, 520 + 30);
+	cairo_show_text(cr, _("试件厚度"));
+	cairo_move_to(cr, 30 + t, 520 + 40);
+	cairo_show_text(cr, _("（h/mm）"));
+	cairo_move_to(cr, 23 + t, 520 + 82);
+	cairo_show_text(cr, gtk_entry_get_text(entries.thick));
+	t = t + 15.7 * 4;
+	cairo_move_to(cr, 20 + t, 520);
+	cairo_line_to(cr, 20 + t, 620);
+	cairo_move_to(cr, 40 + t, 520 + 30);
+	cairo_show_text(cr, _("跨距"));
+	cairo_move_to(cr, 30 + t, 520 + 40);
+	cairo_show_text(cr, _("(Ls/mm)"));
+	cairo_move_to(cr, 23 + t, 520 + 82);
+	cairo_show_text(cr, gtk_entry_get_text(entries.span));
+	t = t + 15.7 * 4;
+	cairo_move_to(cr, 20 + t, 520);
+	cairo_line_to(cr, 20 + t, 620);
+	cairo_move_to(cr, 30 + t, 520 + 30);
+	cairo_show_text(cr, _("最大弯曲力"));
+	cairo_move_to(cr, 30 + t, 520 + 40);
+	cairo_show_text(cr, _("（Fbb/kN）"));
+	cairo_move_to(cr, 23 + t, 520 + 82);
+	sprintf(e, "%.4f", Fbb_data);
+	cairo_show_text(cr, e);
+	t = t + 15.7 * 5;
+	cairo_move_to(cr, 20 + t, 520);
+	cairo_line_to(cr, 20 + t, 620);
+	cairo_move_to(cr, 30 + t, 520 + 30);
+	cairo_show_text(cr, _("最大挠度"));
+	cairo_move_to(cr, 30 + t, 520 + 40);
+	cairo_show_text(cr, _("（f/mm）"));
+	cairo_move_to(cr, 23 + t, 520 + 82);
+	sprintf(f, "%.4f", P1);
+	cairo_show_text(cr, f);
+	t = t + 15.7 * 4;
+	cairo_move_to(cr, 20 + t, 520);
+	cairo_line_to(cr, 20 + t, 620);
+	cairo_move_to(cr, 36 + t, 520 + 25);
+	cairo_show_text(cr, _("弯曲弹性"));
+	cairo_move_to(cr, 36 + t, 520 + 35);
+	cairo_show_text(cr, _("直线斜率"));
+	cairo_move_to(cr, 30 + t, 520 + 45);
+	cairo_show_text(cr, _("（mE/Mpa）"));
+	cairo_move_to(cr, 23 + t, 520 + 82);
+	sprintf(g, "%.4f", mE_data);
+	cairo_show_text(cr, g);
+	t = t + 15.7 * 5;
+	cairo_move_to(cr, 20 + t, 520);
+	cairo_line_to(cr, 20 + t, 620);
+	cairo_move_to(cr, 30 + t, 520 + 30);
+	cairo_show_text(cr, _("最大弯曲强度"));
+	cairo_move_to(cr, 30 + t, 520 + 40);
+	cairo_show_text(cr, _("（Rbb/MPa）"));
+	cairo_move_to(cr, 23 + t, 520 + 82);
+	sprintf(h, "%.4f", Rbb_data);
+	cairo_show_text(cr, h);
+	t = t + 15.7 * 6;
+	cairo_move_to(cr, 20 + t, 520);
+	cairo_line_to(cr, 20 + t, 620);
+
+	cairo_stroke(cr);
+
+	//for (j = 0; j < data_num; j++)
+	//{
+	//	if (max_x < datas[j][0])
+	//	{
+	//		max_x = datas[j][0];
+	//	}
+	//	if (max_y < datas[j][3])
+	//	{
+	//		max_y = datas[j][3];
+	//	}
+	//}
+
+	//Interval_y = RegulateY(0, max_y, 10);
+	//Interval_x = RegulateX(0, max_x, 8);
+
+	//big_y_sp = (height - 2 * Blank) / (top_y / Interval_y);
+	//big_x_sp = (width - 2 * Blank) / (top_x / Interval_x);
+
+	//cairo_set_source_rgb(cr, 0, 0, 0);
+	//cairo_set_line_width(cr, 0.5);
+	//cairo_rectangle(cr, Blank + tr_right, Blank + tr_down, width - 2 * Blank, height - 2 * Blank);/* Draw outer border */
+
+	//for (i = height - Blank + tr_down; i>Blank - 1 + tr_down; i = i - big_y_sp)/* Draw Y-axis */
+	//{
+	//	cairo_move_to(cr, Blank + tr_right - 6, i);
+	//	cairo_line_to(cr, width + tr_right - Blank, i);
+	//	cairo_move_to(cr, Blank + tr_right - 25, i);
+	//	cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+	//	cairo_set_font_size(cr, 12.0);
+	//	sprintf(c, "%.0lf", y);
+	//	y = y + Interval_y;
+	//	cairo_show_text(cr, c);
+	//}
+	//for (i = height - Blank + tr_down; i>Blank + tr_down; i = i - big_y_sp / 10)
+	//{
+	//	cairo_move_to(cr, Blank + tr_right - 3, i);
+	//	cairo_line_to(cr, Blank + tr_right, i);
+	//}
+	//for (i = Blank + tr_right; i <= (width + tr_right - Blank); i = i + big_x_sp)/* Draw X-axis */
+	//{
+	//	cairo_move_to(cr, i, Blank + tr_down);
+	//	cairo_line_to(cr, i, height + tr_down - Blank + 6);
+	//	cairo_move_to(cr, i - 10, height + tr_down - Blank + 16);
+	//	cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+	//	cairo_set_font_size(cr, 12.0);
+	//	sprintf(c, "%.2lf", x);
+	//	x = x + Interval_x;
+	//	cairo_show_text(cr, c);
+	//}
+	//for (i = Blank + tr_right; i<(width + tr_right - Blank); i = i + big_x_sp / 10)
+	//{
+	//	cairo_move_to(cr, i, height + tr_down - Blank);
+	//	cairo_line_to(cr, i, height + tr_down - Blank + 3);
+	//}
+	//cairo_stroke(cr);
+
+	//recv_temp[0] = Blank;//x
+	//recv_temp[3] = height - Blank;//y
+	//cairo_set_source_rgb(cr, 0, 1, 0);
+	//cairo_set_line_width(cr, 1.5);
+	//for (j = 0; j < data_num; j++)/* drawing lines */
+	//{
+	//	cairo_move_to(cr, datas[j][0] / top_x * (width  - 2 * Blank) + Blank + tr_right, height - Blank - datas[j][3] / top_y * (height - 2 * Blank) + tr_down);
+	//	cairo_line_to(cr, recv_temp[0] + tr_right, recv_temp[3] + tr_down);
+	//	recv_temp[0] = datas[j][0] / top_x * (width  - 2 * Blank) + Blank;//x
+	//	recv_temp[3] = height - Blank - datas[j][3] / top_y * (height - 2 * Blank);//y
+	//}
+	//cairo_stroke(cr);
 
 	cairo_show_page(cr);
 	cairo_surface_destroy(report_surface);
